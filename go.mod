@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	fyne.io/fyne/v2 v2.5.4
-	github.com/sparkoo/acctelemetry-go v0.0.0-20250208144950-a1fdb86e42b7
+	github.com/sparkoo/acctelemetry-go v0.0.0-20250208172138-28532f5fefcc
 )
 
 require (

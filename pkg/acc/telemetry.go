@@ -40,4 +40,9 @@ func (s *TelemetryState) changeOnline(online bool) {
 		s.Online = online
 		s.onUpdate(s)
 	}
+	if online {
+		scrape(s.telemetry)
+	} else {
+		stop()
+	}
 }
