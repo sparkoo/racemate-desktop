@@ -18,7 +18,7 @@ const CONTEXT_TELEMETRY = "telemetry"
 func main() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("RaceMate")
-	icon, err := fyne.LoadResourceFromPath("resources/Icon.png")
+	icon, err := fyne.LoadResourceFromPath("Icon.png")
 	if err != nil {
 		log.Println(fmt.Errorf("Failed to set an icon: %w", err))
 	}
