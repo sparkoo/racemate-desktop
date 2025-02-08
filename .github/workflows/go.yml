@@ -23,8 +23,11 @@ jobs:
         
     - name: Set up Fyne
       run: go install fyne.io/fyne/v2/cmd/fyne@latest
-
+      
     - name: Build
+      run: go build -v ./...
+      
+    - name: Package
       run: fyne package -os windows
 
     # - name: Test
