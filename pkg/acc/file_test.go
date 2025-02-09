@@ -6,7 +6,7 @@ import (
 )
 
 func TestReadFile(t *testing.T) {
-	frames, err := loadFromFile("../../1739041520.gob")
+	frames, err := loadFromGob("../../1739041520.gob")
 	if err != nil {
 		t.Error(fmt.Errorf("failed to read file: %w", err))
 	}

@@ -25,6 +25,8 @@ type Lap struct {
 	TrackGripStatus  int32
 	RainIntensity    int32
 	SessionIndex     int32
+	LapTimeMs        int32
+	Frames           []*Frame
 }
 
 type Frame struct {
@@ -40,41 +42,76 @@ type Frame struct {
 	ICurrentTime          int32
 	NormalizedCarPosition float32
 	CarCoordinates        [3]float32
-	// TCLevel               int32
-	// TCCutLevel            int32
-	// EngineMapLevel        int32
-	// ABSLevel              int32
+	IsValidLap            int32
 }
 
+var currentLap *Lap
+var lastFrame *Frame
+
 var scraping = false
-var scraped []*Frame
 
 func scrape(telemetry *acctelemetry.AccTelemetry) {
 	if !scraping {
 		fmt.Println("starting scraping the telemetry")
 		scraping = true
-		ticker := time.NewTicker(10 * time.Millisecond)
+		ticker := time.NewTicker(100 * time.Millisecond)
 		go func(telemetry *acctelemetry.AccTelemetry) {
+			currentLap = startNewLap(telemetry)
 			for _ = range ticker.C {
 				if !scraping {
 					ticker.Stop()
 				}
-				scraped = append(scraped, copyToFrame(telemetry))
+				frame := copyToFrame(telemetry)
+				processFrame(frame, telemetry)
+				lastFrame = frame
 			}
 		}(telemetry)
 	}
 }
 
+func processFrame(frame *Frame, telemetry *acctelemetry.AccTelemetry) {
+	// check if we're in new lap
+	if lastFrame != nil && frame.NormalizedCarPosition-lastFrame.NormalizedCarPosition < 0 {
+		fmt.Printf("new lap. Is it valid? '%d'\n", lastFrame.IsValidLap)
+		if lastFrame.IsValidLap == 1 { // we care only if it is valid lap
+			justFinishedLap := currentLap
+			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
+			go saveToJson(fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "json"), justFinishedLap)
+		}
+
+		currentLap = startNewLap(telemetry)
+	}
+	currentLap.Frames = append(currentLap.Frames, frame)
+}
+
+func startNewLap(telemetry *acctelemetry.AccTelemetry) *Lap {
+	static := telemetry.StaticPointer()
+	physics := telemetry.PhysicsPointer()
+	graphics := telemetry.GraphicsPointer()
+	return &Lap{
+		SmVersion:        static.SmVersion,
+		AcVersion:        static.AcVersion,
+		NumberOfSessions: static.NumberOfSessions,
+		CarModel:         static.CarModel,
+		Track:            static.Track,
+		PlayerName:       static.PlayerName,
+		PlayerNick:       static.PlayerNick,
+		PlayerSurname:    static.PlayerSurname,
+		AirTemp:          physics.AirTemp,
+		RoadTemp:         physics.RoadTemp,
+		SessionType:      graphics.ACSessionType,
+		RainTyres:        graphics.RainTyres,
+		IsValidLap:       graphics.IsValidLap,
+		TrackGripStatus:  graphics.TrackGripStatus,
+		RainIntensity:    graphics.RainIntensity,
+		SessionIndex:     graphics.SessionIndex,
+		LapTimeMs:        0,
+		Frames:           make([]*Frame, 0),
+	}
+}
+
 func stop() {
 	scraping = false
-	timestamp := fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "gob")
-	fmt.Printf("stopping scraping the telemetry. Lets flush it to the file '%s'\n", timestamp)
-	// fmt.Printf("So what do we have here:")
-	// for _, f := range scraped {
-	// 	fmt.Printf("frame: %+v\n", f)
-	// }
-	saveToFile(timestamp, scraped)
-	scraped = make([]*Frame, 0)
 }
 
 func copyToFrame(telemetry *acctelemetry.AccTelemetry) *Frame {
@@ -85,6 +122,7 @@ func copyToFrame(telemetry *acctelemetry.AccTelemetry) *Frame {
 	return &Frame{
 		GraphicPacket: graphics.PacketID,
 		PhysicsPacket: physics.PacketID,
+		IsValidLap:    graphics.IsValidLap,
 
 		// SmVersion:        static.SmVersion,
 		// AcVersion:        static.AcVersion,
