@@ -31,6 +31,17 @@ func saveToFile(filename string, data *message.Lap) error {
 	return saveCompressed(filename, protobufMessage)
 }
 
+func loadFromFile(filename string) (*message.Lap, error) {
+	data, _ := os.ReadFile(filename)
+
+	lap := &message.Lap{}
+	if err := proto.Unmarshal(data, lap); err != nil {
+		return nil, fmt.Errorf("failed to Unmarshal the data: %w", err)
+	}
+
+	return lap, nil
+}
+
 func loadFromFileCompressed(filename string) (*message.Lap, error) {
 	// 1. Open the compressed file
 	f, err := os.Open(filename) // Replace with your file name

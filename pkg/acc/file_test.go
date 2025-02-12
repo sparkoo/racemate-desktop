@@ -5,7 +5,7 @@ import (
 )
 
 func TestReadFile(t *testing.T) {
-	lap, err := loadFromFileCompressed("../../1739392703.lap.gzip")
+	lap, err := loadFromFileCompressed("../../1739393602.lap.gzip")
 	if err != nil {
 		t.Error("Failed to read the file", err)
 	}
@@ -15,4 +15,6 @@ func TestReadFile(t *testing.T) {
 	t.Log(lap.CarModel)
 	t.Log(lap.PlayerName)
 	t.Log(lap.PlayerSurname)
+
+	// t.Error("fail")
 }
