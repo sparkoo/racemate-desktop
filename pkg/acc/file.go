@@ -1,8 +1,11 @@
 package acc
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	message "github.com/sparkoo/racemate-msg/proto"
@@ -23,6 +26,65 @@ func saveToFile(filename string, data *message.Lap) error {
 
 	if _, errWrite := file.Write(protobufMessage); errWrite != nil {
 		return fmt.Errorf("failed write to file: %w", errWrite)
+	}
+
+	return saveCompressed(filename, protobufMessage)
+}
+
+func loadFromFileCompressed(filename string) (*message.Lap, error) {
+	// 1. Open the compressed file
+	f, err := os.Open(filename) // Replace with your file name
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return nil, fmt.Errorf("failed to open the file to read: %w", err)
+	}
+	defer f.Close() // Important: Close the file when done
+
+	// 2. Create a gzip reader
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating gzip reader: %w", err)
+	}
+	defer gr.Close() // Important: Close the gzip reader
+
+	// 3. Read and uncompress the data
+	var data bytes.Buffer       // Or []byte if you know the size beforehand
+	_, err = io.Copy(&data, gr) // Efficiently copies from reader to buffer
+	if err != nil {
+
+		return nil, fmt.Errorf("Error uncompressing data: %w", err)
+	}
+
+	// If you need the data as a byte slice:
+	uncompressedData := data.Bytes()
+
+	lap := &message.Lap{}
+	if err := proto.Unmarshal(uncompressedData, lap); err != nil {
+		return nil, fmt.Errorf("failed to Unmarshal the data: %w", err)
+	}
+
+	return lap, nil
+}
+
+func saveCompressed(filename string, data []byte) error {
+	compressedFilename := filename + ".gzip"
+	f, err := os.Create(compressedFilename)
+	if err != nil {
+		return fmt.Errorf("failed to create compressed file: %w", err)
+	}
+	defer f.Close()
+
+	w := gzip.NewWriter(f)
+	defer w.Close()
+
+	_, err = w.Write(data)
+	if err != nil {
+		return fmt.Errorf("failed to write compressed data: %w", err)
+	}
+
+	err = w.Flush()
+	if err != nil {
+		return fmt.Errorf("failed to flush compressed data: %w", err)
 	}
 
 	return nil

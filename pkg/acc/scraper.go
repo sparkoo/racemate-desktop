@@ -19,7 +19,7 @@ func scrape(telemetry *acctelemetry.AccTelemetry) {
 	if !scraping {
 		fmt.Println("starting scraping the telemetry")
 		scraping = true
-		ticker := time.NewTicker(100 * time.Millisecond)
+		ticker := time.NewTicker(10 * time.Millisecond)
 		go func(telemetry *acctelemetry.AccTelemetry) {
 			currentLap = startNewLap(telemetry)
 			for _ = range ticker.C {
@@ -76,12 +76,13 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 }
 
 func uint16SliceToString(arr []uint16) string {
-	var str strings.Builder // Use strings.Builder for efficiency
+	str := ""
 	for _, val := range arr {
-		str.WriteString(strconv.FormatUint(uint64(val), 10)) // Convert to uint64 for FormatUint
-		str.WriteString(" ")                                 // Add a space between numbers (optional)
+		if val > 0 {
+			str += string(rune(val))
+		}
 	}
-	return strings.TrimSpace(str.String()) // Remove trailing space
+	return strings.TrimSpace(str)
 }
 
 func stop() {

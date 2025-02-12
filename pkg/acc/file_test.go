@@ -1,17 +1,18 @@
 package acc
 
 import (
-	"fmt"
 	"testing"
 )
 
 func TestReadFile(t *testing.T) {
-	frames, err := loadFromGob("../../1739041520.gob")
+	lap, err := loadFromFileCompressed("../../1739392703.lap.gzip")
 	if err != nil {
-		t.Error(fmt.Errorf("failed to read file: %w", err))
+		t.Error("Failed to read the file", err)
 	}
 
-	for _, f := range frames {
-		fmt.Printf("frame: %+v\n", f)
-	}
+	t.Logf("lap data: %+v\n", lap)
+	t.Log(lap.Track)
+	t.Log(lap.CarModel)
+	t.Log(lap.PlayerName)
+	t.Log(lap.PlayerSurname)
 }

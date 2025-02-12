@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -16,6 +17,8 @@ const ACC_STATUS_LABEL_TEXT = `ACC session info: %s`
 const CONTEXT_TELEMETRY = "telemetry"
 
 func main() {
+	fmt.Println(os.Getenv("LOCALAPPDATA"))
+
 	myApp := app.New()
 	myWindow := myApp.NewWindow("RaceMate")
 	icon, err := fyne.LoadResourceFromPath("Icon.png")
