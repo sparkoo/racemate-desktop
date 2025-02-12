@@ -41,7 +41,7 @@ func processFrame(frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
 		if lastFrame.IsValidLap == 1 { // we care only if it is valid lap
 			justFinishedLap := currentLap
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
-			go saveToFile(fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "json"), justFinishedLap)
+			go saveToFile(fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "lap"), justFinishedLap)
 		}
 
 		currentLap = startNewLap(telemetry)
