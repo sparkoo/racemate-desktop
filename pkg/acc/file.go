@@ -1,15 +1,19 @@
 package acc
 
 import (
-	"compress/gzip"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"os"
+
+	message "github.com/sparkoo/racemate-msg/proto"
+	"google.golang.org/protobuf/proto"
 )
 
-func saveToGob(filename string, data []*Frame) error {
-	gob.Register(&Frame{})
+func saveToFile(filename string, data *message.Lap) error {
+	protobufMessage, protoErr := proto.Marshal(data)
+	if protoErr != nil {
+		return fmt.Errorf("failed to marshal lap message with protobuf: %w", protoErr)
+	}
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -17,46 +21,14 @@ func saveToGob(filename string, data []*Frame) error {
 	}
 	defer file.Close()
 
-	gzipWriter := gzip.NewWriter(file)
-	defer gzipWriter.Close()
-
-	encoder := gob.NewEncoder(gzipWriter)
-
-	if err := encoder.Encode(data); err != nil {
-		return fmt.Errorf("failed to encode data: %v", err)
+	if _, errWrite := file.Write(protobufMessage); errWrite != nil {
+		return fmt.Errorf("failed write to file: %w", errWrite)
 	}
-
-	gzipWriter.Flush()
 
 	return nil
 }
 
-func loadFromGob(filename string) ([]*Frame, error) {
-	gob.Register(&Frame{})
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
-	}
-	defer file.Close()
-
-	gzipReader, err := gzip.NewReader(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gzip reader: %v", err)
-	}
-	defer gzipReader.Close()
-
-	decoder := gob.NewDecoder(gzipReader)
-
-	var data []*Frame
-	if err := decoder.Decode(&data); err != nil {
-		return nil, fmt.Errorf("failed to decode data: %v", err)
-	}
-
-	return data, nil
-}
-
-func saveToJson(filename string, lap *Lap) error {
+func saveToJson(filename string, lap *message.Lap) error {
 	fmt.Printf("Save lap to '%s'\n", filename)
 	jsonData, err := json.MarshalIndent(lap, "", "  ") // Use MarshalIndent for pretty printing
 	if err != nil {
@@ -69,20 +41,4 @@ func saveToJson(filename string, lap *Lap) error {
 	}
 
 	return nil
-}
-
-func loadFromJson(filename string) ([]*Frame, error) {
-	var frames []*Frame
-
-	jsonData, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("reading file: %w", err)
-	}
-
-	err = json.Unmarshal(jsonData, &frames)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling JSON to frames: %w", err)
-	}
-
-	return frames, nil
 }
