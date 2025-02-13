@@ -5,7 +5,8 @@ go 1.23.3
 require (
 	fyne.io/fyne/v2 v2.5.4
 	github.com/sparkoo/acctelemetry-go v0.0.0-20250208172138-28532f5fefcc
-	github.com/sparkoo/racemate-msg v0.0.0-20250212183755-dade2301c617
+	github.com/sparkoo/racemate-msg v0.0.0-20250213175352-3525742e9b6c
+	google.golang.org/protobuf v1.36.5
 )
 
 require (
@@ -38,6 +39,5 @@ require (
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
