@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -11,13 +14,19 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
+	"github.com/sparkoo/racemate-desktop/pkg/constants"
 )
 
+const APP_NAME = "RaceMate"
 const ACC_STATUS_LABEL_TEXT = `ACC session info: %s`
 const CONTEXT_TELEMETRY = "telemetry"
 
 func main() {
-	fmt.Println(os.Getenv("LOCALAPPDATA"))
+	appDataDir, err := createAppDataFolder(APP_NAME)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx := context.WithValue(context.Background(), constants.APP_DATA_DIR_CTX_KEY, appDataDir)
 
 	myApp := app.New()
 	myWindow := myApp.NewWindow("RaceMate")
@@ -42,7 +51,7 @@ func main() {
 	// Hide window at start
 	// myWindow.Hide()
 
-	go acc.TelemetryLoop(func(ts *acc.TelemetryState) {
+	go acc.TelemetryLoop(ctx, func(ts *acc.TelemetryState) {
 		if ts.Online {
 			label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "online"))
 		} else {
@@ -65,6 +74,31 @@ func main() {
 	}
 
 	myWindow.ShowAndRun()
+}
+
+func createAppDataFolder(appName string) (string, error) {
+	var appDataDir string
+
+	switch runtime.GOOS {
+	case "windows":
+		appDataDir = os.Getenv("AppData")
+		if appDataDir == "" {
+			appDataDir = filepath.Join(os.Getenv("LOCALAPPDATA"), appName)
+		}
+	default:
+		return "", fmt.Errorf("Failed to create app folder in AppData: %s", appName)
+	}
+
+	appDataPath := filepath.Join(appDataDir, appName)
+
+	if _, err := os.Stat(appDataPath); os.IsNotExist(err) {
+		err := os.MkdirAll(appDataPath, 0755)
+		if err != nil {
+			return "", err
+		}
+	}
+	return appDataPath, nil
+
 }
 
 func updateLabel(label *widget.Label, text string) {

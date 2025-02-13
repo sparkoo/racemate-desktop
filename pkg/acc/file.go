@@ -3,32 +3,33 @@ package acc
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
-	message "github.com/sparkoo/racemate-msg/proto"
+	"github.com/sparkoo/racemate-desktop/pkg/constants"
+	message "github.com/sparkoo/racemate-msg/dist"
 	"google.golang.org/protobuf/proto"
 )
 
-func saveToFile(filename string, data *message.Lap) error {
+func saveToFile(ctx context.Context, filename string, data *message.Lap) error {
+	fmt.Println("saving lap")
 	protobufMessage, protoErr := proto.Marshal(data)
 	if protoErr != nil {
 		return fmt.Errorf("failed to marshal lap message with protobuf: %w", protoErr)
 	}
 
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %v", err)
+	dataDir, ok := ctx.Value(constants.APP_DATA_DIR_CTX_KEY).(string)
+	if !ok {
+		fmt.Printf("no value in ctx %+v\n", ctx)
+		return fmt.Errorf("App data dir not set in context, no place to save.")
 	}
-	defer file.Close()
+	filePath := filepath.Join(dataDir, filename)
 
-	if _, errWrite := file.Write(protobufMessage); errWrite != nil {
-		return fmt.Errorf("failed write to file: %w", errWrite)
-	}
-
-	return saveCompressed(filename, protobufMessage)
+	return saveCompressed(filePath, protobufMessage)
 }
 
 func loadFromFile(filename string) (*message.Lap, error) {

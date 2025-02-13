@@ -1,14 +1,14 @@
 package acc
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/sparkoo/acctelemetry-go"
-	message "github.com/sparkoo/racemate-msg/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	message "github.com/sparkoo/racemate-msg/dist"
 )
 
 var currentLap *message.Lap
@@ -16,7 +16,7 @@ var lastFrame *message.Frame
 
 var scraping = false
 
-func scrape(telemetry *acctelemetry.AccTelemetry) {
+func scrape(ctx context.Context, telemetry *acctelemetry.AccTelemetry) {
 	if !scraping {
 		fmt.Println("starting scraping the telemetry")
 		scraping = true
@@ -28,22 +28,22 @@ func scrape(telemetry *acctelemetry.AccTelemetry) {
 					ticker.Stop()
 				}
 				frame := copyToFrame(telemetry)
-				processFrame(frame, telemetry)
+				processFrame(ctx, frame, telemetry)
 				lastFrame = frame
 			}
 		}(telemetry)
 	}
 }
 
-func processFrame(frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
+func processFrame(ctx context.Context, frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
 	// check if we're in new lap
 	if lastFrame != nil && frame.NormalizedCarPosition-lastFrame.NormalizedCarPosition < 0 {
 		fmt.Printf("new lap. Is it valid? '%d'\n", lastFrame.IsValidLap)
 		if lastFrame.IsValidLap == 1 { // we care only if it is valid lap
 			justFinishedLap := currentLap
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
-			justFinishedLap.Timestamp = timestamppb.Now()
-			go saveToFile(fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "lap"), justFinishedLap)
+			justFinishedLap.Timestamp = uint64(time.Now().Unix())
+			go saveToFile(ctx, fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "lap"), justFinishedLap)
 		}
 
 		currentLap = startNewLap(telemetry)
