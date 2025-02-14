@@ -14,7 +14,7 @@ func UploadFile(filename string) error {
 	}
 
 	// Create HTTP request
-	url := "https://hello-hwppiybqxq-ey.a.run.app"
+	url := "https://unauthorizedupload-hwppiybqxq-ey.a.run.app"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(fileBytes))
 	if err != nil {
 		return fmt.Errorf("Error creating upload request: %w", err)
