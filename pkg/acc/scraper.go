@@ -46,6 +46,8 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
 			go saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), justFinishedLap.Track, justFinishedLap.CarModel, "lap"), justFinishedLap)
+		} else {
+			fmt.Printf("lap is not valid")
 		}
 
 		s.currentLap = startNewLap(telemetry)
@@ -63,24 +65,23 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 	physics := telemetry.PhysicsPointer()
 	graphics := telemetry.GraphicsPointer()
 	return &message.Lap{
-		SmVersion:        uint16SliceToString(static.SmVersion[:]),
-		AcVersion:        uint16SliceToString(static.AcVersion[:]),
-		NumberOfSessions: static.NumberOfSessions,
-		CarModel:         uint16SliceToString(static.CarModel[:]),
-		Track:            uint16SliceToString(static.Track[:]),
-		PlayerName:       uint16SliceToString(static.PlayerName[:]),
-		PlayerNick:       uint16SliceToString(static.PlayerNick[:]),
-		PlayerSurname:    uint16SliceToString(static.PlayerSurname[:]),
-		AirTemp:          physics.AirTemp,
-		RoadTemp:         physics.RoadTemp,
-		SessionType:      graphics.ACSessionType,
-		RainTyres:        graphics.RainTyres,
-		IsValidLap:       graphics.IsValidLap,
-		TrackGripStatus:  graphics.TrackGripStatus,
-		RainIntensity:    graphics.RainIntensity,
-		SessionIndex:     graphics.SessionIndex,
-		LapTimeMs:        0,
-		Frames:           make([]*message.Frame, 1000),
+		SmVersion:       uint16SliceToString(static.SmVersion[:]),
+		AcVersion:       uint16SliceToString(static.AcVersion[:]),
+		CarModel:        uint16SliceToString(static.CarModel[:]),
+		Track:           uint16SliceToString(static.Track[:]),
+		PlayerName:      uint16SliceToString(static.PlayerName[:]),
+		PlayerNick:      uint16SliceToString(static.PlayerNick[:]),
+		PlayerSurname:   uint16SliceToString(static.PlayerSurname[:]),
+		AirTemp:         physics.AirTemp,
+		RoadTemp:        physics.RoadTemp,
+		SessionType:     graphics.ACSessionType,
+		RainTyres:       graphics.RainTyres,
+		IsValidLap:      graphics.IsValidLap,
+		TrackGripStatus: graphics.TrackGripStatus,
+		RainIntensity:   graphics.RainIntensity,
+		LapTimeMs:       0,
+		Frames:          make([]*message.Frame, 1000),
+		LapNumber:       graphics.NumberOfLaps,
 	}
 }
 
