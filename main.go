@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,7 +15,8 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
-	"github.com/sparkoo/racemate-desktop/pkg/constants"
+	"github.com/sparkoo/racemate-desktop/pkg/state"
+	"github.com/sparkoo/racemate-desktop/pkg/upload"
 )
 
 const APP_NAME = "RaceMate"
@@ -22,11 +24,12 @@ const ACC_STATUS_LABEL_TEXT = `ACC session info: %s`
 const CONTEXT_TELEMETRY = "telemetry"
 
 func main() {
-	appDataDir, err := createAppDataFolder(APP_NAME)
+	appState, err := initApp(APP_NAME)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx := context.WithValue(context.Background(), constants.APP_DATA_DIR_CTX_KEY, appDataDir)
+
+	ctx := context.WithValue(context.Background(), state.APP_STATE, appState)
 
 	myApp := app.New()
 	myWindow := myApp.NewWindow("RaceMate")
@@ -46,18 +49,27 @@ func main() {
 		widget.NewButton("Quit", func() {
 			myApp.Quit()
 		}),
+		widget.NewButton("Toggle online", func() {
+			appState.TelemetryOnline = !appState.TelemetryOnline
+		}),
 	))
 
 	// Hide window at start
 	// myWindow.Hide()
 
-	go acc.TelemetryLoop(ctx, func(ts *acc.TelemetryState) {
-		if ts.Online {
-			label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "online"))
-		} else {
-			label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "offline"))
+	go acc.TelemetryLoop(ctx)
+
+	go upload.UploadJob(ctx)
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		for range ticker.C {
+			if appState.TelemetryOnline {
+				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "online"))
+			} else {
+				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "offline"))
+			}
 		}
-	})
+	}()
 
 	// System Tray Support
 	if deskApp, ok := myApp.(desktop.App); ok {
@@ -76,7 +88,8 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
-func createAppDataFolder(appName string) (string, error) {
+func initApp(appName string) (*state.AppState, error) {
+	appState := &state.AppState{}
 	var appDataDir string
 
 	switch runtime.GOOS {
@@ -86,19 +99,42 @@ func createAppDataFolder(appName string) (string, error) {
 			appDataDir = filepath.Join(os.Getenv("LOCALAPPDATA"), appName)
 		}
 	default:
-		return "", fmt.Errorf("Failed to create app folder in AppData: %s", appName)
+		return nil, fmt.Errorf("We can do only Windows: %s", appName)
 	}
 
-	appDataPath := filepath.Join(appDataDir, appName)
+	appDir := filepath.Join(appDataDir, appName)
+	if err := createFullDir(appDir); err != nil {
+		return nil, fmt.Errorf("failed to create an app dir '%s': %w", appDir, err)
+	} else {
+		appState.DataDir = appDir
+	}
 
-	if _, err := os.Stat(appDataPath); os.IsNotExist(err) {
-		err := os.MkdirAll(appDataPath, 0755)
+	uploadDir := filepath.Join(appDataDir, appName, "upload")
+	if err := createFullDir(uploadDir); err != nil {
+		return nil, fmt.Errorf("failed to create an upload dir '%s': %w", uploadDir, err)
+	} else {
+		appState.UploadDir = uploadDir
+	}
+
+	uploadedDir := filepath.Join(appDataDir, appName, "uploaded")
+	if err := createFullDir(uploadedDir); err != nil {
+		return nil, fmt.Errorf("failed to create an uploaded dir '%s': %w", uploadedDir, err)
+	} else {
+		appState.UploadedDir = uploadedDir
+	}
+
+	return appState, nil
+
+}
+
+func createFullDir(dirPath string) error {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(dirPath, 0755)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
-	return appDataPath, nil
-
+	return nil
 }
 
 func updateLabel(label *widget.Label, text string) {

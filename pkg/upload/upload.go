@@ -2,10 +2,56 @@ package upload
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
+
+	"github.com/sparkoo/racemate-desktop/pkg/state"
 )
+
+func UploadJob(ctx context.Context) error {
+	appState, err := state.GetAppState(ctx)
+	if err != nil {
+		return fmt.Errorf("Failed to get at upload job: %w", err)
+	}
+
+	ticker := time.NewTicker(5 * time.Second)
+	for range ticker.C {
+		if !appState.TelemetryOnline {
+			UploadSingleLap(appState)
+		}
+	}
+
+	return nil
+}
+
+func UploadSingleLap(appState *state.AppState) error {
+	entries, err := os.ReadDir(appState.UploadDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
+			fmt.Printf("Uploading '%s'", entry.Name())
+			lapFile := fmt.Sprintf("%s/%s", appState.UploadDir, entry.Name())
+			uploadErr := UploadFile(lapFile)
+			if uploadErr != nil {
+				return fmt.Errorf("Failed to upload the file: %w", uploadErr)
+			}
+			err := os.Rename(lapFile, fmt.Sprintf("%s/%s", appState.UploadedDir, entry.Name()))
+			if err != nil {
+				return fmt.Errorf("failed to move the file '%s' to uploaded directory: %w", entry.Name(), err)
+			}
+			break
+		}
+	}
+	return nil
+}
 
 func UploadFile(filename string) error {
 	fileBytes, readFileErr := os.ReadFile(filename)

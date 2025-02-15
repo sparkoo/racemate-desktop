@@ -2,48 +2,41 @@ package acc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/sparkoo/acctelemetry-go"
+	"github.com/sparkoo/racemate-desktop/pkg/state"
 )
 
 type TelemetryState struct {
 	telemetry *acctelemetry.AccTelemetry
-	onUpdate  func(*TelemetryState)
-
-	Online bool
 }
 
-func TelemetryLoop(ctx context.Context, onUpdate func(*TelemetryState)) {
-	state := &TelemetryState{telemetry: acctelemetry.New(), onUpdate: onUpdate, Online: false}
-	onUpdate(state)
+func TelemetryLoop(ctx context.Context) {
+	telemetry := &TelemetryState{telemetry: acctelemetry.New()}
+	scraper := &Scraper{}
+	appState, err := state.GetAppState(ctx)
+	if err != nil {
+		fmt.Printf("failed to get app state in TelemetryLoop: %s", err)
+	}
 
 	// this loop is checking whether we have running ACC session
 	for range time.NewTicker(5 * time.Second).C {
-		if state.Online {
-			if state.telemetry.GraphicsPointer().ACStatus != 2 {
-				state.changeOnline(ctx, false)
+		if appState.TelemetryOnline {
+			if telemetry.telemetry.GraphicsPointer() != nil && telemetry.telemetry.GraphicsPointer().ACStatus != 2 {
+				appState.TelemetryOnline = false
 			}
 		} else {
-			if state.telemetry.Connect() == nil {
-				if state.telemetry.GraphicsPointer().ACStatus == 2 {
-					state.changeOnline(ctx, true)
+			if telemetry.telemetry.Connect() == nil {
+				if telemetry.telemetry.GraphicsPointer().ACStatus == 2 {
+					appState.TelemetryOnline = true
+					scraper.scrape(ctx, telemetry.telemetry)
 				} else {
-					state.telemetry.Close()
+					telemetry.telemetry.Close()
+					scraper.stop()
 				}
 			}
 		}
-	}
-}
-
-func (s *TelemetryState) changeOnline(ctx context.Context, online bool) {
-	if online != s.Online {
-		s.Online = online
-		s.onUpdate(s)
-	}
-	if online {
-		scrape(ctx, s.telemetry)
-	} else {
-		stop()
 	}
 }

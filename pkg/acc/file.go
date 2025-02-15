@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sparkoo/racemate-desktop/pkg/constants"
+	"github.com/sparkoo/racemate-desktop/pkg/state"
 	message "github.com/sparkoo/racemate-msg/dist"
 	"google.golang.org/protobuf/proto"
 )
@@ -22,12 +22,11 @@ func saveToFile(ctx context.Context, filename string, data *message.Lap) error {
 		return fmt.Errorf("failed to marshal lap message with protobuf: %w", protoErr)
 	}
 
-	dataDir, ok := ctx.Value(constants.APP_DATA_DIR_CTX_KEY).(string)
-	if !ok {
-		fmt.Printf("no value in ctx %+v\n", ctx)
-		return fmt.Errorf("App data dir not set in context, no place to save.")
+	appState, err := state.GetAppState(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get app state to save to the file: %w", err)
 	}
-	filePath := filepath.Join(dataDir, filename)
+	filePath := filepath.Join(appState.DataDir, filename)
 
 	return saveCompressed(filePath, protobufMessage)
 }

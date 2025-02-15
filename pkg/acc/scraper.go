@@ -11,44 +11,51 @@ import (
 	message "github.com/sparkoo/racemate-msg/dist"
 )
 
-var currentLap *message.Lap
-var lastFrame *message.Frame
+type Scraper struct {
+	currentLap *message.Lap
+	lastFrame  *message.Frame
 
-var scraping = false
+	scraping bool
+}
 
-func scrape(ctx context.Context, telemetry *acctelemetry.AccTelemetry) {
-	if !scraping {
+func (s *Scraper) scrape(ctx context.Context, telemetry *acctelemetry.AccTelemetry) {
+	if !s.scraping {
 		fmt.Println("starting scraping the telemetry")
-		scraping = true
-		ticker := time.NewTicker(10 * time.Millisecond)
+		s.scraping = true
 		go func(telemetry *acctelemetry.AccTelemetry) {
-			currentLap = startNewLap(telemetry)
+			ticker := time.NewTicker(10 * time.Millisecond)
+			s.currentLap = startNewLap(telemetry)
 			for _ = range ticker.C {
-				if !scraping {
+				if !s.scraping {
 					ticker.Stop()
 				}
 				frame := copyToFrame(telemetry)
-				processFrame(ctx, frame, telemetry)
-				lastFrame = frame
+				s.processFrame(ctx, frame, telemetry)
+				s.lastFrame = frame
 			}
 		}(telemetry)
 	}
 }
 
-func processFrame(ctx context.Context, frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
+func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
 	// check if we're in new lap
-	if lastFrame != nil && frame.NormalizedCarPosition-lastFrame.NormalizedCarPosition < 0 {
-		fmt.Printf("new lap. Is it valid? '%d'\n", lastFrame.IsValidLap)
-		if lastFrame.IsValidLap == 1 { // we care only if it is valid lap
-			justFinishedLap := currentLap
+	if s.lastFrame != nil && frame.NormalizedCarPosition-s.lastFrame.NormalizedCarPosition < 0 {
+		// we care only if it is valid lap
+		if s.lastFrame.IsValidLap == 1 && s.currentLap.Frames[0].NormalizedCarPosition < 0.01 {
+			justFinishedLap := s.currentLap
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
-			go saveToFile(ctx, fmt.Sprintf("%s.%s", strconv.FormatInt(time.Now().Unix(), 10), "lap"), justFinishedLap)
+			go saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), justFinishedLap.Track, justFinishedLap.CarModel, "lap"), justFinishedLap)
 		}
 
-		currentLap = startNewLap(telemetry)
+		s.currentLap = startNewLap(telemetry)
 	}
-	currentLap.Frames = append(currentLap.Frames, frame)
+	s.currentLap.Frames = append(s.currentLap.Frames, frame)
+}
+
+func (s *Scraper) stop() {
+	fmt.Println("stop scraping")
+	s.scraping = false
 }
 
 func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
@@ -85,10 +92,6 @@ func uint16SliceToString(arr []uint16) string {
 		}
 	}
 	return strings.TrimSpace(str)
-}
-
-func stop() {
-	scraping = false
 }
 
 func copyToFrame(telemetry *acctelemetry.AccTelemetry) *message.Frame {
