@@ -26,7 +26,7 @@ func saveToFile(ctx context.Context, filename string, data *message.Lap) error {
 	if err != nil {
 		return fmt.Errorf("failed to get app state to save to the file: %w", err)
 	}
-	filePath := filepath.Join(appState.DataDir, filename)
+	filePath := filepath.Join(appState.UploadDir, filename)
 
 	return saveCompressed(filePath, protobufMessage)
 }

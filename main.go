@@ -49,9 +49,6 @@ func main() {
 		widget.NewButton("Quit", func() {
 			myApp.Quit()
 		}),
-		widget.NewButton("Toggle online", func() {
-			appState.TelemetryOnline = !appState.TelemetryOnline
-		}),
 	))
 
 	// Hide window at start

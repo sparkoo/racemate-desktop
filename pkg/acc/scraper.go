@@ -23,15 +23,17 @@ func (s *Scraper) scrape(ctx context.Context, telemetry *acctelemetry.AccTelemet
 		fmt.Println("starting scraping the telemetry")
 		s.scraping = true
 		go func(telemetry *acctelemetry.AccTelemetry) {
-			ticker := time.NewTicker(10 * time.Millisecond)
+			ticker := time.NewTicker(1000 * time.Millisecond)
 			s.currentLap = startNewLap(telemetry)
 			for _ = range ticker.C {
 				if !s.scraping {
 					ticker.Stop()
 				}
 				frame := copyToFrame(telemetry)
-				s.processFrame(ctx, frame, telemetry)
-				s.lastFrame = frame
+				if frame != nil {
+					s.processFrame(ctx, frame, telemetry)
+					s.lastFrame = frame
+				}
 			}
 		}(telemetry)
 	}
@@ -41,13 +43,15 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 	// check if we're in new lap
 	if s.lastFrame != nil && frame.NormalizedCarPosition-s.lastFrame.NormalizedCarPosition < 0 {
 		// we care only if it is valid lap
-		if s.lastFrame.IsValidLap == 1 && s.currentLap.Frames[0].NormalizedCarPosition < 0.01 {
+		firstFrame := s.currentLap.Frames[0]
+		lastFrame := s.currentLap.Frames[len(s.currentLap.Frames)-1]
+		if s.lastFrame.IsValidLap == 1 && firstFrame.NormalizedCarPosition < 0.05 && lastFrame.NormalizedCarPosition > 0.95 {
 			justFinishedLap := s.currentLap
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
 			go saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), justFinishedLap.Track, justFinishedLap.CarModel, "lap"), justFinishedLap)
 		} else {
-			fmt.Printf("lap is not valid")
+			fmt.Printf("lap is not valid, %d, %f\n", s.lastFrame.IsValidLap, s.currentLap.Frames[0].NormalizedCarPosition)
 		}
 
 		s.currentLap = startNewLap(telemetry)
@@ -80,7 +84,7 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 		TrackGripStatus: graphics.TrackGripStatus,
 		RainIntensity:   graphics.RainIntensity,
 		LapTimeMs:       0,
-		Frames:          make([]*message.Frame, 1000),
+		Frames:          make([]*message.Frame, 0),
 		LapNumber:       graphics.NumberOfLaps,
 	}
 }
@@ -99,6 +103,9 @@ func copyToFrame(telemetry *acctelemetry.AccTelemetry) *message.Frame {
 	// static := telemetry.StaticPointer()
 	physics := telemetry.PhysicsPointer()
 	graphics := telemetry.GraphicsPointer()
+	if graphics == nil || physics == nil {
+		return nil
+	}
 
 	return &message.Frame{
 		GraphicPacket: graphics.PacketID,
