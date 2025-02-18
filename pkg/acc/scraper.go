@@ -107,6 +107,19 @@ func copyToFrame(telemetry *acctelemetry.AccTelemetry) *message.Frame {
 		return nil
 	}
 
+	// find out on what array ID is my car
+	// we have to do this for every frame as as players disconnects, my index might change
+	// it may be an issue if someone disconnects after we get the index and when we actually read the data, then we might get wrong coordinates
+	// but it may be so rare, that it will never happen
+	// let's fix once it is real issue
+	carIndex := 0
+	for _, carId := range graphics.CarID {
+		if carId == graphics.PlayerCarID {
+			break
+		}
+		carIndex++
+	}
+
 	return &message.Frame{
 		GraphicPacket: graphics.PacketID,
 		PhysicsPacket: physics.PacketID,
@@ -121,8 +134,8 @@ func copyToFrame(telemetry *acctelemetry.AccTelemetry) *message.Frame {
 
 		CurrentTime:           graphics.ICurrentTime,
 		NormalizedCarPosition: graphics.NormalizedCarPosition,
-		CarCoordinateX:        graphics.CarCoordinates[0][0],
-		CarCoordinateY:        graphics.CarCoordinates[0][1],
-		CarCoordinateZ:        graphics.CarCoordinates[0][2],
+		CarCoordinateX:        graphics.CarCoordinates[carIndex][0],
+		CarCoordinateY:        graphics.CarCoordinates[carIndex][1],
+		CarCoordinateZ:        graphics.CarCoordinates[carIndex][2],
 	}
 }
