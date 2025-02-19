@@ -65,6 +65,8 @@ github.com/sparkoo/racemate-msg v0.0.0-20250215122958-1c0cbffc55c8 h1:0eGnJAt1wl
 github.com/sparkoo/racemate-msg v0.0.0-20250215122958-1c0cbffc55c8/go.mod h1:K7EyRBGCYR5b5i4ioCTxBLb798kSMw7MIHdkYEbmbdY=
 github.com/sparkoo/racemate-msg v0.0.0-20250215123052-735ce0cae940 h1:V2WnKpa9HJL1DZWvr4NPATyOExqDZzy7HCkmfMF4r/E=
 github.com/sparkoo/racemate-msg v0.0.0-20250215123052-735ce0cae940/go.mod h1:K7EyRBGCYR5b5i4ioCTxBLb798kSMw7MIHdkYEbmbdY=
+github.com/sparkoo/racemate-msg v0.0.0-20250219054724-0c360d40411c h1:GxgTlyD8wzbO00mL+KEa8N3b8/UeJ3i3yzDeaI/qNMo=
+github.com/sparkoo/racemate-msg v0.0.0-20250219054724-0c360d40411c/go.mod h1:K7EyRBGCYR5b5i4ioCTxBLb798kSMw7MIHdkYEbmbdY=
 github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c h1:km8GpoQut05eY3GiYWEedbTT0qnSxrCjsVbb7yKY1KE=
 github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c/go.mod h1:cNQ3dwVJtS5Hmnjxy6AgTPd0Inb3pW05ftPSX7NZO7Q=
 github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef h1:Ch6Q+AZUxDBCVqdkI8FSpFyZDtCVBc2VmejdNrm5rRQ=
@@ -77,6 +79,8 @@ golang.org/x/image v0.24.0 h1:AN7zRgVsbvmTfNyqIbbOraYL8mSwcKncEj8ofjgzcMQ=
 golang.org/x/image v0.24.0/go.mod h1:4b/ITuLfqYq1hqZcjofwctIhi7sZh2WaCjvsBNjjya8=
 golang.org/x/mobile v0.0.0-20250210185054-b38b8813d607 h1:8AYwUPNm7g4OIzg1y7Gol6RZQRoQdgcYHnM3HjfOoFI=
 golang.org/x/mobile v0.0.0-20250210185054-b38b8813d607/go.mod h1:r/F+l0hqAYkCz3NEMpHN/JAnG61+T6FsHfS0IB0/qys=
+golang.org/x/mobile v0.0.0-20250218173827-cd096645fcd3 h1:0V/7Y1FEaFdAzb9DkVDh4QFp4vL4yYCiJ5cjk80lZyA=
+golang.org/x/mobile v0.0.0-20250218173827-cd096645fcd3/go.mod h1:j5VYNgQ6lZYZlzHFjdgS2UeqRSZunDk+/zXVTAIA3z4=
 golang.org/x/net v0.35.0 h1:T5GQRQb2y08kTAByq9L4/bz8cipCdA8FbRTXewonqY8=
 golang.org/x/net v0.35.0/go.mod h1:EglIi67kWsHKlRzzVMUD93VMSWGFOMSZgxFjparz1Qk=
 golang.org/x/sys v0.30.0 h1:QjkSwP/36a20jFYWkSue1YwXzLmsV5Gfq7Eiy72C1uc=

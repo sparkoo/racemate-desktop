@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sparkoo/acctelemetry-go"
+	"github.com/sparkoo/racemate-desktop/pkg/state"
 	message "github.com/sparkoo/racemate-msg/dist"
 )
 
@@ -19,11 +20,20 @@ type Scraper struct {
 }
 
 func (s *Scraper) scrape(ctx context.Context, telemetry *acctelemetry.AccTelemetry) {
+	appState, err := state.GetAppState(ctx)
+	var pollRate time.Duration
+	if err != nil {
+		fmt.Printf("failed to get app state to save to the file: %s", err)
+		pollRate = 1 * time.Second
+	} else {
+		pollRate = appState.PollRate
+	}
+
 	if !s.scraping {
 		fmt.Println("starting scraping the telemetry")
 		s.scraping = true
 		go func(telemetry *acctelemetry.AccTelemetry) {
-			ticker := time.NewTicker(1000 * time.Millisecond)
+			ticker := time.NewTicker(pollRate) // main ticker for polling the telemetry data
 			s.currentLap = startNewLap(telemetry)
 			for _ = range ticker.C {
 				if !s.scraping {
@@ -124,6 +134,7 @@ func copyToFrame(telemetry *acctelemetry.AccTelemetry) *message.Frame {
 		GraphicPacket: graphics.PacketID,
 		PhysicsPacket: physics.PacketID,
 		IsValidLap:    graphics.IsValidLap,
+		PenaltyType:   graphics.Penalty,
 
 		Gas:        physics.Gas,
 		Brake:      physics.Brake,

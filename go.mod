@@ -5,7 +5,7 @@ go 1.23.3
 require (
 	fyne.io/fyne/v2 v2.5.4
 	github.com/sparkoo/acctelemetry-go v0.0.0-20250215114810-28851a1ed7a4
-	github.com/sparkoo/racemate-msg v0.0.0-20250215123052-735ce0cae940
+	github.com/sparkoo/racemate-msg v0.0.0-20250219054724-0c360d40411c
 	google.golang.org/protobuf v1.36.5
 )
 
@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	golang.org/x/image v0.24.0 // indirect
-	golang.org/x/mobile v0.0.0-20250210185054-b38b8813d607 // indirect
+	golang.org/x/mobile v0.0.0-20250218173827-cd096645fcd3 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

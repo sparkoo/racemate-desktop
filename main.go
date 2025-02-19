@@ -86,7 +86,9 @@ func main() {
 }
 
 func initApp(appName string) (*state.AppState, error) {
-	appState := &state.AppState{}
+	appState := &state.AppState{
+		PollRate: 10 * time.Millisecond,
+	}
 	var appDataDir string
 
 	switch runtime.GOOS {

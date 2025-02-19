@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 type raceMateContextKey string
@@ -15,6 +16,7 @@ type AppState struct {
 	UploadDir       string
 	UploadedDir     string
 	Error           error
+	PollRate        time.Duration
 }
 
 func GetAppState(ctx context.Context) (*AppState, error) {
