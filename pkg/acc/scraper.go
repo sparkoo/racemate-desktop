@@ -51,7 +51,7 @@ func (s *Scraper) scrape(ctx context.Context, telemetry *acctelemetry.AccTelemet
 
 func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, telemetry *acctelemetry.AccTelemetry) {
 	// check if we're in new lap
-	if s.lastFrame != nil && frame.NormalizedCarPosition-s.lastFrame.NormalizedCarPosition < 0 {
+	if len(s.currentLap.Frames) > 0 && s.lastFrame != nil && frame.NormalizedCarPosition-s.lastFrame.NormalizedCarPosition < 0 {
 		// we care only if it is valid lap
 		firstFrame := s.currentLap.Frames[0]
 		lastFrame := s.currentLap.Frames[len(s.currentLap.Frames)-1]
@@ -59,7 +59,8 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 			justFinishedLap := s.currentLap
 			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
-			go saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), justFinishedLap.Track, justFinishedLap.CarModel, "lap"), justFinishedLap)
+			go s.finalizeLap(ctx, justFinishedLap, telemetry)
+
 		} else {
 			fmt.Printf("lap is not valid, %d, %f\n", s.lastFrame.IsValidLap, s.currentLap.Frames[0].NormalizedCarPosition)
 		}
@@ -67,6 +68,31 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 		s.currentLap = startNewLap(telemetry)
 	}
 	s.currentLap.Frames = append(s.currentLap.Frames, frame)
+}
+
+func (s *Scraper) finalizeLap(ctx context.Context, lap *message.Lap, telemetry *acctelemetry.AccTelemetry) {
+	// find car update from UDP, let's try 10s
+	start := time.Now()
+	tries := 0
+	for time.Since(start) < 10*time.Second {
+		tries += 1
+		carUpdateMessage := telemetry.ReadUdpMessage()
+		//TODO: check if we're in current lap already
+		if carUpdateMessage != nil && lap.CarIndex == int32(carUpdateMessage.CarIndex) {
+			fmt.Printf("We've found it in %d tries \\o/ is it valid? %+v\n", tries, carUpdateMessage)
+			fmt.Printf("current: %+v\nbest: %+v\nlast: %+v\n", carUpdateMessage.CurrentLap, carUpdateMessage.BestSessionLap, carUpdateMessage.LastLap)
+			if carUpdateMessage.LastLap.InValidForBest > 0 {
+				fmt.Println("it is valid")
+				saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), lap.Track, lap.CarModel, "lap"), lap)
+			} else {
+				fmt.Println("it is not valid")
+			}
+			return
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
 }
 
 func (s *Scraper) stop() {
@@ -88,6 +114,7 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 		PlayerSurname:   uint16SliceToString(static.PlayerSurname[:]),
 		AirTemp:         physics.AirTemp,
 		RoadTemp:        physics.RoadTemp,
+		CarIndex:        graphics.PlayerCarID,
 		SessionType:     graphics.ACSessionType,
 		RainTyres:       graphics.RainTyres,
 		IsValidLap:      graphics.IsValidLap,

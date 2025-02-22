@@ -14,7 +14,7 @@ type TelemetryState struct {
 }
 
 func TelemetryLoop(ctx context.Context) {
-	telemetry := &TelemetryState{telemetry: acctelemetry.New()}
+	telemetry := &TelemetryState{telemetry: acctelemetry.New(acctelemetry.DefaultUdpConfig())}
 	scraper := &Scraper{}
 	appState, err := state.GetAppState(ctx)
 	if err != nil {
@@ -22,13 +22,13 @@ func TelemetryLoop(ctx context.Context) {
 	}
 
 	// this loop is checking whether we have running ACC session
-	for range time.NewTicker(5 * time.Second).C {
+	for range time.NewTicker(10 * time.Second).C {
 		if appState.TelemetryOnline {
 			if telemetry.telemetry.GraphicsPointer() != nil && telemetry.telemetry.GraphicsPointer().ACStatus != 2 {
 				appState.TelemetryOnline = false
 			}
 		} else {
-			if telemetry.telemetry.Connect() == nil {
+			if connectionErr := telemetry.telemetry.Connect(); connectionErr == nil {
 				if telemetry.telemetry.GraphicsPointer().ACStatus == 2 {
 					appState.TelemetryOnline = true
 					scraper.scrape(ctx, telemetry.telemetry)
@@ -36,6 +36,8 @@ func TelemetryLoop(ctx context.Context) {
 					telemetry.telemetry.Close()
 					scraper.stop()
 				}
+			} else {
+				fmt.Printf("failed to connect, trying again... \n'%s'\n", connectionErr)
 			}
 		}
 	}
