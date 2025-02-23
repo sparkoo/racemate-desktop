@@ -3,6 +3,7 @@ package acc
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -57,10 +58,8 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 		lastFrame := s.currentLap.Frames[len(s.currentLap.Frames)-1]
 		if s.lastFrame.IsValidLap == 1 && firstFrame.NormalizedCarPosition < 0.05 && lastFrame.NormalizedCarPosition > 0.95 {
 			justFinishedLap := s.currentLap
-			justFinishedLap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
 			go s.finalizeLap(ctx, justFinishedLap, telemetry)
-
 		} else {
 			fmt.Printf("lap is not valid, %d, %f\n", s.lastFrame.IsValidLap, s.currentLap.Frames[0].NormalizedCarPosition)
 		}
@@ -71,27 +70,35 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 }
 
 func (s *Scraper) finalizeLap(ctx context.Context, lap *message.Lap, telemetry *acctelemetry.AccTelemetry) {
-	// find car update from UDP, let's try 10s
+	// find car update from UDP, let's try for 10s
+	time.Sleep(5 * time.Second)
 	start := time.Now()
 	tries := 0
 	for time.Since(start) < 10*time.Second {
 		tries += 1
 		carUpdateMessage := telemetry.ReadUdpMessage()
-		//TODO: check if we're in current lap already
-		if carUpdateMessage != nil && lap.CarIndex == int32(carUpdateMessage.CarIndex) {
-			fmt.Printf("We've found it in %d tries \\o/ is it valid? %+v\n", tries, carUpdateMessage)
-			fmt.Printf("current: %+v\nbest: %+v\nlast: %+v\n", carUpdateMessage.CurrentLap, carUpdateMessage.BestSessionLap, carUpdateMessage.LastLap)
-			if carUpdateMessage.LastLap.InValidForBest > 0 {
-				fmt.Println("it is valid")
-				saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), lap.Track, lap.CarModel, "lap"), lap)
-			} else {
-				fmt.Println("it is not valid")
+
+		if carUpdateMessage != nil &&
+			telemetry.GraphicsPointer().PlayerCarID == int32(carUpdateMessage.CarIndex) {
+			// fmt.Printf("We've found it in %d tries, lap '%d' \\o/ is it valid? %+v\n", tries, telemetry.GraphicsPointer().CompletedLaps, carUpdateMessage)
+			// fmt.Printf("current: %+v\nbest: %+v\nlast: %+v\n", carUpdateMessage.CurrentLap, carUpdateMessage.BestSessionLap, carUpdateMessage.LastLap)
+			// fmt.Printf("telemetry.GraphicsPointer().CompletedLaps '%d' == int32(carUpdateMessage.Laps) '%d' => %t\n", telemetry.GraphicsPointer().CompletedLaps, int32(carUpdateMessage.Laps), telemetry.GraphicsPointer().CompletedLaps == int32(carUpdateMessage.Laps))
+			// fmt.Printf("telemetry.GraphicsPointer().ILastTime '%d' == carUpdateMessage.LastLap.LaptimeMs '%d' => '%t'\n", telemetry.GraphicsPointer().ILastTime, carUpdateMessage.LastLap.LaptimeMs, telemetry.GraphicsPointer().ILastTime == carUpdateMessage.LastLap.LaptimeMs)
+			if telemetry.GraphicsPointer().CompletedLaps == int32(carUpdateMessage.Laps) &&
+				telemetry.GraphicsPointer().ILastTime == carUpdateMessage.LastLap.LaptimeMs {
+				lap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
+				if lap.LapTimeMs < math.MaxInt32 && carUpdateMessage.LastLap.InValidForBest > 0 {
+					saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), lap.Track, lap.CarModel, "lap"), lap)
+				} else {
+					fmt.Println("it is not valid")
+				}
+				return
 			}
-			return
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
+	fmt.Println("Could not confirm the lap...")
 
 }
 
@@ -114,7 +121,6 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 		PlayerSurname:   uint16SliceToString(static.PlayerSurname[:]),
 		AirTemp:         physics.AirTemp,
 		RoadTemp:        physics.RoadTemp,
-		CarIndex:        graphics.PlayerCarID,
 		SessionType:     graphics.ACSessionType,
 		RainTyres:       graphics.RainTyres,
 		IsValidLap:      graphics.IsValidLap,
@@ -122,7 +128,7 @@ func startNewLap(telemetry *acctelemetry.AccTelemetry) *message.Lap {
 		RainIntensity:   graphics.RainIntensity,
 		LapTimeMs:       0,
 		Frames:          make([]*message.Frame, 0),
-		LapNumber:       graphics.NumberOfLaps,
+		LapNumber:       graphics.CompletedLaps,
 	}
 }
 
