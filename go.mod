@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	fyne.io/fyne/v2 v2.5.4
-	github.com/sparkoo/acctelemetry-go v0.0.0-20250222215050-512ddc0dd6db
+	github.com/sparkoo/acctelemetry-go v0.0.0-20250223101143-2df2f8430727
 	github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9
 	google.golang.org/protobuf v1.36.5
 )
