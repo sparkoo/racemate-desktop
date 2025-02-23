@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -89,6 +90,21 @@ func initApp(appName string) (*state.AppState, error) {
 	appState := &state.AppState{
 		PollRate: 10 * time.Millisecond,
 	}
+
+	if err := initDataDirs(appName, appState); err != nil {
+		return nil, fmt.Errorf("failed to init data dirs: %w", err)
+	}
+
+	initLogger(appState)
+
+	return appState, nil
+}
+
+func initLogger(appState *state.AppState) {
+	appState.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+}
+
+func initDataDirs(appName string, appState *state.AppState) error {
 	var appDataDir string
 
 	switch runtime.GOOS {
@@ -98,32 +114,38 @@ func initApp(appName string) (*state.AppState, error) {
 			appDataDir = filepath.Join(os.Getenv("LOCALAPPDATA"), appName)
 		}
 	default:
-		return nil, fmt.Errorf("We can do only Windows: %s", appName)
+		return fmt.Errorf("We can do only Windows: %s", appName)
 	}
 
 	appDir := filepath.Join(appDataDir, appName)
 	if err := createFullDir(appDir); err != nil {
-		return nil, fmt.Errorf("failed to create an app dir '%s': %w", appDir, err)
+		return fmt.Errorf("failed to create an app dir '%s': %w", appDir, err)
 	} else {
 		appState.DataDir = appDir
 	}
 
 	uploadDir := filepath.Join(appDataDir, appName, "upload")
 	if err := createFullDir(uploadDir); err != nil {
-		return nil, fmt.Errorf("failed to create an upload dir '%s': %w", uploadDir, err)
+		return fmt.Errorf("failed to create an upload dir '%s': %w", uploadDir, err)
 	} else {
 		appState.UploadDir = uploadDir
 	}
 
 	uploadedDir := filepath.Join(appDataDir, appName, "uploaded")
 	if err := createFullDir(uploadedDir); err != nil {
-		return nil, fmt.Errorf("failed to create an uploaded dir '%s': %w", uploadedDir, err)
+		return fmt.Errorf("failed to create an uploaded dir '%s': %w", uploadedDir, err)
 	} else {
 		appState.UploadedDir = uploadedDir
 	}
 
-	return appState, nil
+	logsDir := filepath.Join(appDataDir, appName, "logs")
+	if err := createFullDir(logsDir); err != nil {
+		return fmt.Errorf("failed to create a logs dir '%s': %w", logsDir, err)
+	} else {
+		appState.LogsDir = logsDir
+	}
 
+	return nil
 }
 
 func createFullDir(dirPath string) error {

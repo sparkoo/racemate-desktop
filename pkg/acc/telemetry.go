@@ -3,6 +3,7 @@ package acc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/sparkoo/acctelemetry-go"
@@ -14,6 +15,7 @@ type TelemetryState struct {
 }
 
 func TelemetryLoop(ctx context.Context) {
+	log := state.GetLogger(ctx)
 	telemetry := &TelemetryState{telemetry: acctelemetry.New(acctelemetry.DefaultUdpConfig())}
 	scraper := &Scraper{}
 	appState, err := state.GetAppState(ctx)
@@ -37,7 +39,7 @@ func TelemetryLoop(ctx context.Context) {
 					scraper.stop()
 				}
 			} else {
-				fmt.Printf("failed to connect, trying again... \n'%s'\n", connectionErr)
+				log.Error("failed to connect, trying again...", slog.Any("err", connectionErr))
 			}
 		}
 	}

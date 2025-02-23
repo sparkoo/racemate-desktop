@@ -55,6 +55,8 @@ github.com/rymdport/portal v0.4.0 h1:0i1amcprI7gnulxp4AahwSuFlN84287/A9pVWValjCI
 github.com/rymdport/portal v0.4.0/go.mod h1:kFF4jslnJ8pD5uCi17brj/ODlfIidOxlgUDTO5ncnC4=
 github.com/sparkoo/acctelemetry-go v0.0.0-20250223101143-2df2f8430727 h1:9jiVRzth6e8LyqY7jO+7PotbgSlyYvg+8LSNChtGrRg=
 github.com/sparkoo/acctelemetry-go v0.0.0-20250223101143-2df2f8430727/go.mod h1:6bFiJqpuajM3HaFcbYigz3iYZzQweLi05auhYzQoVWQ=
+github.com/sparkoo/acctelemetry-go v0.0.0-20250223130948-b99bf47f9660 h1:Kz7IUY6XIAAuOm/yb3mKLdVlD4f8MVLAdPXOC+4SdWI=
+github.com/sparkoo/acctelemetry-go v0.0.0-20250223130948-b99bf47f9660/go.mod h1:6bFiJqpuajM3HaFcbYigz3iYZzQweLi05auhYzQoVWQ=
 github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9 h1:tzMBvkqm0kON1/y0PJ/hqJjBd0rpOGqUbvC/vUpFcxY=
 github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9/go.mod h1:K7EyRBGCYR5b5i4ioCTxBLb798kSMw7MIHdkYEbmbdY=
 github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c h1:km8GpoQut05eY3GiYWEedbTT0qnSxrCjsVbb7yKY1KE=

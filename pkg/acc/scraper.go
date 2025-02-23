@@ -3,6 +3,7 @@ package acc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"strconv"
 	"strings"
@@ -70,35 +71,33 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 }
 
 func (s *Scraper) finalizeLap(ctx context.Context, lap *message.Lap, telemetry *acctelemetry.AccTelemetry) {
-	// find car update from UDP, let's try for 10s
+	log := state.GetLogger(ctx)
+	// UDP is delayed, let's wait couple of seconds
 	time.Sleep(5 * time.Second)
+
+	// find car update from UDP, let's try for 5s
 	start := time.Now()
-	tries := 0
 	for time.Since(start) < 10*time.Second {
-		tries += 1
-		carUpdateMessage := telemetry.ReadUdpMessage()
+		carUpdateMessage := telemetry.RealtimeCarUpdate()
 
 		if carUpdateMessage != nil &&
-			telemetry.GraphicsPointer().PlayerCarID == int32(carUpdateMessage.CarIndex) {
-			// fmt.Printf("We've found it in %d tries, lap '%d' \\o/ is it valid? %+v\n", tries, telemetry.GraphicsPointer().CompletedLaps, carUpdateMessage)
-			// fmt.Printf("current: %+v\nbest: %+v\nlast: %+v\n", carUpdateMessage.CurrentLap, carUpdateMessage.BestSessionLap, carUpdateMessage.LastLap)
-			// fmt.Printf("telemetry.GraphicsPointer().CompletedLaps '%d' == int32(carUpdateMessage.Laps) '%d' => %t\n", telemetry.GraphicsPointer().CompletedLaps, int32(carUpdateMessage.Laps), telemetry.GraphicsPointer().CompletedLaps == int32(carUpdateMessage.Laps))
-			// fmt.Printf("telemetry.GraphicsPointer().ILastTime '%d' == carUpdateMessage.LastLap.LaptimeMs '%d' => '%t'\n", telemetry.GraphicsPointer().ILastTime, carUpdateMessage.LastLap.LaptimeMs, telemetry.GraphicsPointer().ILastTime == carUpdateMessage.LastLap.LaptimeMs)
-			if telemetry.GraphicsPointer().CompletedLaps == int32(carUpdateMessage.Laps) &&
-				telemetry.GraphicsPointer().ILastTime == carUpdateMessage.LastLap.LaptimeMs {
-				lap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
-				if lap.LapTimeMs < math.MaxInt32 && carUpdateMessage.LastLap.InValidForBest > 0 {
-					saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), lap.Track, lap.CarModel, "lap"), lap)
-				} else {
-					fmt.Println("it is not valid")
-				}
-				return
+			telemetry.GraphicsPointer().PlayerCarID == int32(carUpdateMessage.CarIndex) && // we receive random cars from UDP, this checks it is our car
+			telemetry.GraphicsPointer().CompletedLaps == int32(carUpdateMessage.Laps) && // UDP is delayed by couple of seconds, we check that we're in same lap
+			telemetry.GraphicsPointer().ILastTime == carUpdateMessage.LastLap.LaptimeMs { // and we confirm that laptime matches so we're sure it's really correct lap
+
+			lap.LapTimeMs = telemetry.GraphicsPointer().ILastTime
+			if lap.LapTimeMs < math.MaxInt32 &&
+				carUpdateMessage.LastLap.InValidForBest > 0 {
+				saveToFile(ctx, fmt.Sprintf("%s_%s_%s.%s", strconv.FormatInt(time.Now().Unix(), 10), lap.Track, lap.CarModel, "lap"), lap)
+			} else {
+				log.Debug("Not valid lap", slog.String("track", lap.Track), slog.Uint64("timestamp", lap.Timestamp), slog.Int("laptime", int(lap.LapTimeMs)))
 			}
+			return
 		}
 
 		time.Sleep(50 * time.Millisecond)
 	}
-	fmt.Println("Could not confirm the lap...")
+	log.Debug("Could not confirm", slog.String("track", lap.Track), slog.Uint64("timestamp", lap.Timestamp), slog.Int("laptime", int(lap.LapTimeMs)))
 
 }
 
