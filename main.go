@@ -18,11 +18,13 @@ import (
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 	"github.com/sparkoo/racemate-desktop/pkg/upload"
+	"github.com/sparkoo/racemate-desktop/pkg/webserver"
 )
 
 const APP_NAME = "RaceMate"
 const ACC_STATUS_LABEL_TEXT = `ACC session info: %s`
 const CONTEXT_TELEMETRY = "telemetry"
+const WEB_SERVER_PORT = 12123
 
 func main() {
 	appState, err := initApp(APP_NAME)
@@ -44,14 +46,39 @@ func main() {
 	myWindow.Resize(fyne.NewSize(200, 300))
 	myWindow.SetFixedSize(true)
 
+	// Create web server
+	webServer := webserver.NewServer(WEB_SERVER_PORT, myApp)
+
 	// Main UI
 	label := widget.NewLabel("Hello! This is a background app.")
 	myWindow.SetContent(container.NewVBox(
 		label,
+		widget.NewButton("Login", func() {
+			// Start web server and open browser for login
+			if webServer.IsActive() {
+				label.SetText("Login server is already running")
+				return
+			}
+
+			err := webServer.Start()
+			if err != nil {
+				label.SetText(fmt.Sprintf("Error starting login server: %v", err))
+				log.Printf("Error starting login server: %v\n", err)
+				return
+			}
+
+			label.SetText("Login server started. Browser should open automatically.")
+		}),
 		widget.NewButton("Hide to Tray", func() {
 			myWindow.Hide()
 		}),
 		widget.NewButton("Quit", func() {
+			// Stop web server if running
+			if webServer.IsActive() {
+				if err := webServer.Stop(); err != nil {
+					log.Printf("Error stopping web server: %v\n", err)
+				}
+			}
 			myApp.Quit()
 		}),
 	))
