@@ -40,6 +40,10 @@ func main() {
 	}
 	myWindow.SetIcon(icon)
 
+	// Set a fixed window size
+	myWindow.Resize(fyne.NewSize(200, 300))
+	myWindow.SetFixedSize(true)
+
 	// Main UI
 	label := widget.NewLabel("Hello! This is a background app.")
 	myWindow.SetContent(container.NewVBox(
