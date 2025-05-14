@@ -6,7 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.5.4
 	github.com/sparkoo/acctelemetry-go v0.0.0-20250223130948-b99bf47f9660
 	github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
