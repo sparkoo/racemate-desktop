@@ -113,8 +113,8 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	// TODO: Implement actual authentication
-	log.Printf("Login attempt: username=%s, password=%s\n", username, password)
-
+	log.Printf("Login attempt: username=%s\n", username)
+	
 	// For now, just redirect back to the login page
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
