@@ -92,11 +92,17 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
 		for range ticker.C {
+			// Thread-safe UI update using fyne.Do()
+			status := "offline"
 			if appState.TelemetryOnline {
-				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "online"))
-			} else {
-				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, "offline"))
+				status = "online"
 			}
+			final := status // Create a local copy for the closure
+			
+			// Use fyne.Do to safely update UI from a goroutine
+			fyne.Do(func() {
+				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, final))
+			})
 		}
 	}()
 
@@ -190,7 +196,10 @@ func createFullDir(dirPath string) error {
 }
 
 func updateLabel(label *widget.Label, text string) {
-	label.SetText(text)
+	// Use fyne.Do to ensure thread-safe UI updates
+	fyne.Do(func() {
+		label.SetText(text)
+	})
 }
 
 func convertToString(chars []uint16) string {
