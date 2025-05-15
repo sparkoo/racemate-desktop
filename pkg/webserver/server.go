@@ -36,7 +36,7 @@ func (s *Server) Start() error {
 	}
 
 	mux := http.NewServeMux()
-	
+
 	// Register routes
 	mux.HandleFunc("/", s.handleLogin)
 	mux.HandleFunc("/login", s.handleLoginSubmit)
@@ -110,11 +110,11 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	username := r.FormValue("username")
-	password := r.FormValue("password")
+	// password := r.FormValue("password")
 
 	// TODO: Implement actual authentication
 	log.Printf("Login attempt: username=%s\n", username)
-	
+
 	// For now, just redirect back to the login page
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -127,7 +127,7 @@ func (s *Server) openBrowser() {
 		log.Printf("Error parsing URL: %v\n", err)
 		return
 	}
-	
+
 	// Use Fyne's OpenURL function to open the browser
 	err = s.app.OpenURL(parsedURL)
 	if err != nil {
