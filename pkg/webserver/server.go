@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -102,21 +103,53 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleLoginSubmit processes login form submissions
+// handleLoginSubmit processes login form submissions with Firebase token
 func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
-	username := r.FormValue("username")
-	// password := r.FormValue("password")
+	// Parse JSON request body
+	var requestData struct {
+		IDToken string `json:"idToken"`
+	}
 
-	// TODO: Implement actual authentication
-	log.Printf("Login attempt: username=%s\n", username)
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&requestData); err != nil {
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		log.Printf("Error decoding request body: %v\n", err)
+		return
+	}
 
-	// For now, just redirect back to the login page
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// TODO: Verify the Firebase ID token
+	// In a production environment, you should verify the token with Firebase Admin SDK
+	// For now, we'll just log the token and create a session
+
+	// Log a portion of the token (safely handling short tokens)
+	tokenPreview := requestData.IDToken
+	if len(tokenPreview) > 20 {
+		tokenPreview = tokenPreview[:20] + "..."
+	}
+	log.Printf("Login attempt with Firebase token: %s\n", tokenPreview)
+
+	// Set a cookie or session to maintain login state
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "authenticated", // In production, use a secure session ID
+		Path:     "/",
+		MaxAge:   3600, // 1 hour
+		HttpOnly: true,
+		Secure:   r.TLS != nil, // Set to true in production with HTTPS
+	})
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Authentication successful",
+	})
 }
 
 // openBrowser opens the default browser to the login page using Fyne
