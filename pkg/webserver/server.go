@@ -8,9 +8,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"github.com/sparkoo/racemate-desktop/pkg/config"
 )
 
 // Server represents the web server
@@ -19,14 +21,27 @@ type Server struct {
 	port     int
 	isActive bool
 	app      fyne.App
+	firebaseConfig *config.FirebaseConfig
 }
 
 // NewServer creates a new web server instance
 func NewServer(port int, app fyne.App) *Server {
+	// Load Firebase config from environment variables
+	firebaseConfig := config.NewFirebaseConfig(
+		os.Getenv("FIREBASE_API_KEY"),
+		os.Getenv("FIREBASE_AUTH_DOMAIN"),
+		os.Getenv("FIREBASE_PROJECT_ID"),
+		os.Getenv("FIREBASE_STORAGE_BUCKET"),
+		os.Getenv("FIREBASE_MESSAGING_SENDER_ID"),
+		os.Getenv("FIREBASE_APP_ID"),
+		os.Getenv("FIREBASE_MEASUREMENT_ID"),
+	)
+
 	return &Server{
 		port:     port,
 		isActive: false,
 		app:      app,
+		firebaseConfig: firebaseConfig,
 	}
 }
 
@@ -96,7 +111,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = tmpl.Execute(w, nil)
+	// Pass Firebase configuration to the template
+	err = tmpl.Execute(w, s.firebaseConfig.TemplateData())
 	if err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		log.Printf("Error rendering template: %v\n", err)

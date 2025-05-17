@@ -82,15 +82,15 @@
     </div>
 
     <script>
-      // Firebase configuration
+      // Firebase configuration loaded from environment variables
       const firebaseConfig = {
-        apiKey: "AIzaSyBeOEWJ6Bj3Cxt4OdIZGTZwyELhyyuONU4",
-        authDomain: "racemate-3dc5c.firebaseapp.com",
-        projectId: "racemate-3dc5c",
-        storageBucket: "racemate-3dc5c.firebasestorage.app",
-        messagingSenderId: "935374379053",
-        appId: "1:935374379053:web:87b6464781d479549600a4",
-        measurementId: "G-D6LY59DN3D",
+        apiKey: "{{.FirebaseAPIKey}}",
+        authDomain: "{{.FirebaseAuthDomain}}",
+        projectId: "{{.FirebaseProjectID}}",
+        storageBucket: "{{.FirebaseStorageBucket}}",
+        messagingSenderId: "{{.FirebaseMessagingSenderID}}",
+        appId: "{{.FirebaseAppID}}",
+        measurementId: "{{.FirebaseMeasurementID}}",
       };
 
       // Initialize Firebase
