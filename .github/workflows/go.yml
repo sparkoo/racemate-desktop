@@ -7,30 +7,47 @@ permissions:
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
-
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.23'
-        
-    - name: Set up Fyne
-      run: go install fyne.io/fyne/v2/cmd/fyne@latest
-      
-    - name: Build
-      run: go build -v ./...
-      
-    - name: Package
-      run: fyne package -os windows
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
 
-    # - name: Test
-    #   run: go test -v ./...
+      - name: Set up Fyne
+        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+
+      - name: Set up environment variables
+        run: |
+          echo "FIREBASE_API_KEY=dev-key" >> $env:GITHUB_ENV
+          echo "FIREBASE_AUTH_DOMAIN=dev.firebaseapp.com" >> $env:GITHUB_ENV
+          echo "FIREBASE_PROJECT_ID=dev-project" >> $env:GITHUB_ENV
+          echo "FIREBASE_STORAGE_BUCKET=dev-storage.appspot.com" >> $env:GITHUB_ENV
+          echo "FIREBASE_MESSAGING_SENDER_ID=1234567890" >> $env:GITHUB_ENV
+          echo "FIREBASE_APP_ID=1:1234567890:web:abc123" >> $env:GITHUB_ENV
+          echo "FIREBASE_MEASUREMENT_ID=G-ABC123" >> $env:GITHUB_ENV
+
+      - name: Clean
+        run: make clean
+
+      - name: Build
+        run: make build
+
+      - name: Package with Fyne
+        run: fyne package -os windows -executable build/racemate.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: racemate-windows
+          path: |
+            build/racemate.exe
+            *.exe
