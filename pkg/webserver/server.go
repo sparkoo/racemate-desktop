@@ -17,10 +17,10 @@ import (
 
 // Server represents the web server
 type Server struct {
-	server   *http.Server
-	port     int
-	isActive bool
-	app      fyne.App
+	server         *http.Server
+	port           int
+	isActive       bool
+	app            fyne.App
 	firebaseConfig *config.FirebaseConfig
 }
 
@@ -38,9 +38,9 @@ func NewServer(port int, app fyne.App) *Server {
 	)
 
 	return &Server{
-		port:     port,
-		isActive: false,
-		app:      app,
+		port:           port,
+		isActive:       false,
+		app:            app,
 		firebaseConfig: firebaseConfig,
 	}
 }
