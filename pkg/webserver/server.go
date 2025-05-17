@@ -22,6 +22,8 @@ type Server struct {
 	isActive       bool
 	app            fyne.App
 	firebaseConfig *config.FirebaseConfig
+	timeoutTimer   *time.Timer
+	timeoutDone    chan bool
 }
 
 // NewServer creates a new web server instance
@@ -51,6 +53,9 @@ func (s *Server) Start() error {
 		return fmt.Errorf("server is already running")
 	}
 
+	// Initialize timeout channels
+	s.timeoutDone = make(chan bool)
+
 	mux := http.NewServeMux()
 
 	// Register routes
@@ -74,6 +79,14 @@ func (s *Server) Start() error {
 	time.Sleep(100 * time.Millisecond)
 	s.isActive = true
 
+	// Set a 5-minute timeout for the server
+	s.timeoutTimer = time.AfterFunc(5*time.Minute, func() {
+		log.Println("Login server timeout reached (5 minutes), stopping server")
+		if err := s.Stop(); err != nil {
+			log.Printf("Error stopping server on timeout: %v\n", err)
+		}
+	})
+
 	// Open browser
 	s.openBrowser()
 
@@ -84,6 +97,11 @@ func (s *Server) Start() error {
 func (s *Server) Stop() error {
 	if !s.isActive {
 		return nil
+	}
+
+	// Cancel the timeout timer if it's running
+	if s.timeoutTimer != nil {
+		s.timeoutTimer.Stop()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
