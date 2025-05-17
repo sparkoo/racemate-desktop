@@ -1,0 +1,54 @@
+.PHONY: build build-dev clean
+
+# Binary name
+BINARY_NAME=racemate
+BUILD_DIR=build
+
+# Include .env file if it exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
+# Default build (production)
+build:
+	@echo "Building $(BINARY_NAME)..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -ldflags="\
+		-X main.firebaseAPIKey=$(FIREBASE_API_KEY) \
+		-X main.firebaseAuthDomain=$(FIREBASE_AUTH_DOMAIN) \
+		-X main.firebaseProjectID=$(FIREBASE_PROJECT_ID) \
+		-X main.firebaseStorageBucket=$(FIREBASE_STORAGE_BUCKET) \
+		-X main.firebaseMessagingSenderID=$(FIREBASE_MESSAGING_SENDER_ID) \
+		-X main.firebaseAppID=$(FIREBASE_APP_ID) \
+		-X main.firebaseMeasurementID=$(FIREBASE_MEASUREMENT_ID)" \
+	-o $(BUILD_DIR)/$(BINARY_NAME)
+
+# Development build using values from .env file
+build-dev:
+	@echo "Building $(BINARY_NAME) for development..."
+	@mkdir -p $(BUILD_DIR)
+	@go build -ldflags="\
+		-X main.firebaseAPIKey=$(FIREBASE_API_KEY) \
+		-X main.firebaseAuthDomain=$(FIREBASE_AUTH_DOMAIN) \
+		-X main.firebaseProjectID=$(FIREBASE_PROJECT_ID) \
+		-X main.firebaseStorageBucket=$(FIREBASE_STORAGE_BUCKET) \
+		-X main.firebaseMessagingSenderID=$(FIREBASE_MESSAGING_SENDER_ID) \
+		-X main.firebaseAppID=$(FIREBASE_APP_ID) \
+		-X main.firebaseMeasurementID=$(FIREBASE_MEASUREMENT_ID)" \
+	-o $(BUILD_DIR)/$(BINARY_NAME)
+
+# Clean build artifacts
+clean:
+	@echo "Cleaning..."
+	@rm -rf $(BUILD_DIR)
+
+# Run the application
+run: build
+	@echo "Starting $(BINARY_NAME)..."
+	@./$(BUILD_DIR)/$(BINARY_NAME)
+
+# Run the development version
+run-dev: build-dev
+	@echo "Starting $(BINARY_NAME) in development mode..."
+	@./$(BUILD_DIR)/$(BINARY_NAME)
