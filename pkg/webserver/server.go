@@ -166,6 +166,17 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": "Authentication successful",
 	})
+	
+	// Schedule server shutdown after sending the response
+	go func() {
+		// Wait a moment to ensure the response is sent
+		time.Sleep(500 * time.Millisecond)
+		log.Println("Authentication successful, stopping login server")
+		// Stop the server
+		if err := s.Stop(); err != nil {
+			log.Printf("Error stopping server: %v\n", err)
+		}
+	}()
 }
 
 // openBrowser opens the default browser to the login page using Fyne
