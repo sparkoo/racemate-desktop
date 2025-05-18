@@ -45,7 +45,7 @@ jobs:
         run: fyne package -os windows -executable build/racemate.exe
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: racemate-windows
           path: |
