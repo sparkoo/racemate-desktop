@@ -1,4 +1,4 @@
-.PHONY: build build-dev clean
+.PHONY: build build-dev clean package-windows
 
 # Binary name
 BINARY_NAME=racemate
@@ -46,6 +46,12 @@ build-dev:
 clean:
 	@echo "Cleaning..."
 	@rm -rf $(BUILD_DIR)
+
+# Package for Windows using Fyne
+package-windows: build
+	@echo "Packaging $(BINARY_NAME) for Windows..."
+	fyne package -os windows -executable $(BUILD_DIR)/$(BINARY_NAME).exe
+	@echo "Windows package created"
 
 # Run the application
 run: build
