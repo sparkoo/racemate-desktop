@@ -144,13 +144,20 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse JSON request body
-	var requestData struct {
-		IDToken string `json:"idToken"`
+	// Parse JSON request body with full user data
+	var userData struct {
+		IDToken       string `json:"idToken"`
+		UID           string `json:"uid"`
+		DisplayName   string `json:"displayName"`
+		Email         string `json:"email"`
+		PhotoURL      string `json:"photoURL"`
+		PhoneNumber   string `json:"phoneNumber"`
+		EmailVerified bool   `json:"emailVerified"`
+		ProviderData  []map[string]interface{} `json:"providerData"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&requestData); err != nil {
+	if err := decoder.Decode(&userData); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		log.Printf("Error decoding request body: %v\n", err)
 		return
@@ -158,14 +165,18 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Verify the Firebase ID token
 	// In a production environment, you should verify the token with Firebase Admin SDK
-	// For now, we'll just log the token and create a session
+	// For now, we'll just log the user information and create a session
 
+	// Log user information (safely handling sensitive data)
+	log.Printf("Login attempt for user: %s (UID: %s, Email: %s)\n", 
+		userData.DisplayName, userData.UID, userData.Email)
+	
 	// Log a portion of the token (safely handling short tokens)
-	tokenPreview := requestData.IDToken
+	tokenPreview := userData.IDToken
 	if len(tokenPreview) > 20 {
 		tokenPreview = tokenPreview[:20] + "..."
 	}
-	log.Printf("Login attempt with Firebase token: %s\n", tokenPreview)
+	log.Printf("Firebase token: %s\n", tokenPreview)
 
 	// Set a cookie or session to maintain login state
 	http.SetCookie(w, &http.Cookie{

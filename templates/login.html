@@ -168,17 +168,29 @@
           .auth()
           .signInWithPopup(provider)
           .then((result) => {
-            // Get the ID token
-            return result.user.getIdToken();
+            // Get the user information and ID token
+            const user = result.user;
+            return user.getIdToken().then(idToken => {
+              return {
+                idToken: idToken,
+                uid: user.uid,
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
+                phoneNumber: user.phoneNumber,
+                emailVerified: user.emailVerified,
+                providerData: user.providerData
+              };
+            });
           })
-          .then((idToken) => {
-            // Send the token to your server
+          .then((userData) => {
+            // Send the complete user data to your server
             return fetch("/login", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ idToken }),
+              body: JSON.stringify(userData),
             });
           })
           .then((response) => {
