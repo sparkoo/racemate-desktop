@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
+	"github.com/sparkoo/racemate-desktop/pkg/auth"
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 	"github.com/sparkoo/racemate-desktop/pkg/upload"
 	"github.com/sparkoo/racemate-desktop/pkg/webserver"
@@ -31,6 +32,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Initialize auth manager
+	authManager := auth.NewAuthManager(appState)
 
 	ctx := context.WithValue(context.Background(), state.APP_STATE, appState)
 
@@ -48,27 +52,61 @@ func main() {
 
 	// Create web server
 	webServer := webserver.NewServer(WEB_SERVER_PORT, myApp)
+	// Set auth manager for the web server
+	webServer.SetAuthManager(appState)
+
+	// Check if user is already logged in
+	isLoggedIn := authManager.IsLoggedIn()
+	userInfo := ""
+	if isLoggedIn {
+		user, _ := authManager.GetCurrentUser()
+		if user != nil {
+			userInfo = fmt.Sprintf("Logged in as: %s", user.DisplayName)
+		}
+	}
 
 	// Main UI
-	label := widget.NewLabel("Hello! This is a background app.")
+	// Create separate labels for different information
+	statusLabel := widget.NewLabel("ACC session info: offline") // Label for ACC status
+	userLabel := widget.NewLabel(userInfo) // Label for user login info
+	loginButton := widget.NewButton("Login", func() {
+		// Start web server and open browser for login
+		if webServer.IsActive() {
+			userLabel.SetText("Login server is already running")
+			return
+		}
+
+		err := webServer.Start()
+		if err != nil {
+			userLabel.SetText(fmt.Sprintf("Error starting login server: %v", err))
+			log.Printf("Error starting login server: %v\n", err)
+			return
+		}
+
+		userLabel.SetText("Login server started. Browser should open automatically.")
+	})
+
+	logoutButton := widget.NewButton("Logout", func() {
+		err := authManager.Logout()
+		if err != nil {
+			userLabel.SetText(fmt.Sprintf("Error logging out: %v", err))
+			log.Printf("Error logging out: %v\n", err)
+			return
+		}
+		userLabel.SetText("Logged out successfully")
+	})
+
+	// Show login or logout button based on current state
+	var authButtons *fyne.Container
+	if isLoggedIn {
+		authButtons = container.NewVBox(userLabel, logoutButton)
+	} else {
+		authButtons = container.NewVBox(loginButton)
+	}
+
 	myWindow.SetContent(container.NewVBox(
-		label,
-		widget.NewButton("Login", func() {
-			// Start web server and open browser for login
-			if webServer.IsActive() {
-				label.SetText("Login server is already running")
-				return
-			}
-
-			err := webServer.Start()
-			if err != nil {
-				label.SetText(fmt.Sprintf("Error starting login server: %v", err))
-				log.Printf("Error starting login server: %v\n", err)
-				return
-			}
-
-			label.SetText("Login server started. Browser should open automatically.")
-		}),
+		statusLabel, // ACC status label
+		authButtons,
 		widget.NewButton("Hide to Tray", func() {
 			myWindow.Hide()
 		}),
@@ -99,9 +137,35 @@ func main() {
 			}
 			final := status // Create a local copy for the closure
 			
+			// Check login status periodically
+			currentlyLoggedIn := authManager.IsLoggedIn()
+			var userDisplayInfo string
+			if currentlyLoggedIn {
+				user, _ := authManager.GetCurrentUser()
+				if user != nil {
+					userDisplayInfo = fmt.Sprintf("Logged in as: %s", user.DisplayName)
+				}
+			}
+			
 			// Use fyne.Do to safely update UI from a goroutine
 			fyne.Do(func() {
-				label.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, final))
+				// Update ACC status label
+				statusLabel.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, final))
+				
+				// Update login status if it changed
+				if currentlyLoggedIn != isLoggedIn {
+					isLoggedIn = currentlyLoggedIn
+					
+					// Rebuild auth buttons based on new state
+					if isLoggedIn {
+						userLabel.SetText(userDisplayInfo)
+						authButtons.Objects = []fyne.CanvasObject{userLabel, logoutButton}
+					} else {
+						userLabel.SetText("")
+						authButtons.Objects = []fyne.CanvasObject{loginButton}
+					}
+					authButtons.Refresh()
+				}
 			})
 		}
 	}()

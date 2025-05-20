@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"github.com/sparkoo/racemate-desktop/pkg/auth"
 	"github.com/sparkoo/racemate-desktop/pkg/config"
+	"github.com/sparkoo/racemate-desktop/pkg/state"
 )
 
 // Server represents the web server
@@ -24,6 +26,7 @@ type Server struct {
 	firebaseConfig *config.FirebaseConfig
 	timeoutTimer   *time.Timer
 	timeoutDone    chan bool
+	authManager    *auth.AuthManager
 }
 
 // NewServer creates a new web server instance
@@ -45,6 +48,11 @@ func NewServer(port int, app fyne.App) *Server {
 		app:            app,
 		firebaseConfig: firebaseConfig,
 	}
+}
+
+// SetAuthManager sets the auth manager for the server
+func (s *Server) SetAuthManager(appState *state.AppState) {
+	s.authManager = auth.NewAuthManager(appState)
 }
 
 // Start starts the web server
@@ -147,12 +155,14 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// Parse JSON request body with full user data
 	var userData struct {
 		IDToken       string `json:"idToken"`
+		RefreshToken  string `json:"refreshToken"`
 		UID           string `json:"uid"`
 		DisplayName   string `json:"displayName"`
 		Email         string `json:"email"`
 		PhotoURL      string `json:"photoURL"`
 		PhoneNumber   string `json:"phoneNumber"`
 		EmailVerified bool   `json:"emailVerified"`
+		ExpiresIn     float64 `json:"expiresIn"` // Firebase returns this as a float
 		ProviderData  []map[string]interface{} `json:"providerData"`
 	}
 
@@ -177,6 +187,35 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		tokenPreview = tokenPreview[:20] + "..."
 	}
 	log.Printf("Firebase token: %s\n", tokenPreview)
+
+	// Save user data if auth manager is available
+	if s.authManager != nil {
+		// Set expiration time
+		expiresInSeconds := 3600 // Default to 1 hour if not provided
+		if userData.ExpiresIn > 0 {
+			expiresInSeconds = int(userData.ExpiresIn) // Convert float to int
+		}
+		
+		// Create user data object
+		authData := &auth.UserData{
+			UID:          userData.UID,
+			Email:        userData.Email,
+			DisplayName:  userData.DisplayName,
+			PhotoURL:     userData.PhotoURL,
+			IDToken:      userData.IDToken,
+			RefreshToken: userData.RefreshToken,
+			ExpiresAt:    time.Now().Add(time.Duration(expiresInSeconds) * time.Second),
+		}
+		
+		// Save to persistent storage
+		if err := s.authManager.SaveUserData(authData); err != nil {
+			log.Printf("Error saving user data: %v\n", err)
+		} else {
+			log.Println("User data saved successfully")
+		}
+	} else {
+		log.Println("Warning: Auth manager not set, user data not saved")
+	}
 
 	// Set a cookie or session to maintain login state
 	http.SetCookie(w, &http.Cookie{

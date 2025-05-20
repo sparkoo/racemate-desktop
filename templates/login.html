@@ -147,6 +147,10 @@
 
       // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
+      
+      // Set persistence to LOCAL - this will use IndexedDB to store auth state
+      // This allows Firebase to remember the user's login state
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
       // Get elements
       const googleLoginButton = document.getElementById("googleLoginButton");
@@ -170,17 +174,30 @@
           .then((result) => {
             // Get the user information and ID token
             const user = result.user;
-            return user.getIdToken().then(idToken => {
-              return {
-                idToken: idToken,
-                uid: user.uid,
-                displayName: user.displayName,
-                email: user.email,
-                photoURL: user.photoURL,
-                phoneNumber: user.phoneNumber,
-                emailVerified: user.emailVerified,
-                providerData: user.providerData
-              };
+            
+            // Get the ID token result for expiration time
+            return user.getIdTokenResult().then(idTokenResult => {
+              // Get a fresh ID token
+              return firebase.auth().currentUser.getIdToken(/* forceRefresh */ true).then(idToken => {
+                // Create a session cookie with a long expiration time
+                // For desktop apps, we can use a longer expiration
+                return {
+                  idToken: idToken,
+                  // We don't have direct access to refresh tokens in the web SDK
+                  // Instead, we'll rely on Firebase's built-in token refresh mechanism
+                  // The desktop app will need to implement a way to get fresh tokens
+                  // when needed, possibly by launching a hidden webview
+                  refreshToken: user.uid + '-' + Date.now(), // Just a unique identifier for this session
+                  expiresIn: (new Date(idTokenResult.expirationTime).getTime() - new Date().getTime()) / 1000,
+                  uid: user.uid,
+                  displayName: user.displayName,
+                  email: user.email,
+                  photoURL: user.photoURL,
+                  phoneNumber: user.phoneNumber,
+                  emailVerified: user.emailVerified,
+                  providerData: user.providerData
+                };
+              });
             });
           })
           .then((userData) => {
