@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sparkoo/racemate-desktop/pkg/auth"
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 )
 
@@ -22,7 +23,9 @@ func UploadJob(ctx context.Context) error {
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
 		if !appState.TelemetryOnline {
-			UploadSingleLap(appState)
+			if uploadErr := UploadSingleLap(appState); uploadErr != nil {
+				fmt.Printf("Failed to upload a single lap: %s\n", uploadErr)
+			}
 		}
 	}
 
@@ -37,16 +40,18 @@ func UploadSingleLap(appState *state.AppState) error {
 
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
-			fmt.Printf("Uploading '%s'", entry.Name())
+			fmt.Printf("Uploading '%s'\n", entry.Name())
 			lapFile := fmt.Sprintf("%s/%s", appState.UploadDir, entry.Name())
 			uploadErr := UploadFile(lapFile, appState)
 			if uploadErr != nil {
 				return fmt.Errorf("Failed to upload the file: %w", uploadErr)
 			}
+			fmt.Println("File uploaded successfully")
 			err := os.Rename(lapFile, fmt.Sprintf("%s/%s", appState.UploadedDir, entry.Name()))
 			if err != nil {
 				return fmt.Errorf("failed to move the file '%s' to uploaded directory: %w", entry.Name(), err)
 			}
+			fmt.Println("File moved to uploaded directory")
 			break
 		}
 	}
@@ -69,6 +74,20 @@ func UploadFile(filename string, appState *state.AppState) error {
 	// Set headers
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("content-encoding", "gzip")
+	
+	// Add authorization token if user is logged in
+	authManager := auth.NewAuthManager(appState)
+	if authManager.IsLoggedIn() {
+		user, err := authManager.GetCurrentUser()
+		if err == nil && user != nil {
+			req.Header.Set("Authorization", "Bearer "+user.IDToken)
+			fmt.Println("Added auth token to upload request")
+		} else {
+			fmt.Println("Failed to get user for auth token:", err)
+		}
+	} else {
+		fmt.Println("User not logged in, upload will be unauthorized")
+	}
 
 	// Send request using http.Client
 	client := &http.Client{}
@@ -79,6 +98,9 @@ func UploadFile(filename string, appState *state.AppState) error {
 	defer resp.Body.Close()
 
 	// Print response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Upload failed with status code: %d %s", resp.StatusCode, resp.Status)
+	}
 	fmt.Println("Upload Response Status:", resp.Status)
 	return nil
 }
