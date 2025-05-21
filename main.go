@@ -68,7 +68,7 @@ func main() {
 	// Main UI
 	// Create separate labels for different information
 	statusLabel := widget.NewLabel("ACC session info: offline") // Label for ACC status
-	userLabel := widget.NewLabel(userInfo) // Label for user login info
+	userLabel := widget.NewLabel(userInfo)                      // Label for user login info
 	loginButton := widget.NewButton("Login", func() {
 		// Start web server and open browser for login
 		if webServer.IsActive() {
@@ -136,7 +136,7 @@ func main() {
 				status = "online"
 			}
 			final := status // Create a local copy for the closure
-			
+
 			// Check login status periodically
 			currentlyLoggedIn := authManager.IsLoggedIn()
 			var userDisplayInfo string
@@ -146,16 +146,16 @@ func main() {
 					userDisplayInfo = fmt.Sprintf("Logged in as: %s", user.DisplayName)
 				}
 			}
-			
+
 			// Use fyne.Do to safely update UI from a goroutine
 			fyne.Do(func() {
 				// Update ACC status label
 				statusLabel.SetText(fmt.Sprintf(ACC_STATUS_LABEL_TEXT, final))
-				
+
 				// Update login status if it changed
 				if currentlyLoggedIn != isLoggedIn {
 					isLoggedIn = currentlyLoggedIn
-					
+
 					// Rebuild auth buttons based on new state
 					if isLoggedIn {
 						userLabel.SetText(userDisplayInfo)
@@ -189,7 +189,8 @@ func main() {
 
 func initApp(appName string) (*state.AppState, error) {
 	appState := &state.AppState{
-		PollRate: 10 * time.Millisecond,
+		PollRate:  10 * time.Millisecond,
+		UploadURL: "https://lapupload-hwppiybqxq-ey.a.run.app",
 	}
 
 	if err := initDataDirs(appName, appState); err != nil {

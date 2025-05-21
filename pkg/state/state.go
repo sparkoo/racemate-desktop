@@ -21,6 +21,7 @@ type AppState struct {
 	Error           error
 	PollRate        time.Duration
 	Logger          *slog.Logger
+	UploadURL       string
 }
 
 func GetAppState(ctx context.Context) (*AppState, error) {

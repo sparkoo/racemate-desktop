@@ -39,7 +39,7 @@ func UploadSingleLap(appState *state.AppState) error {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
 			fmt.Printf("Uploading '%s'", entry.Name())
 			lapFile := fmt.Sprintf("%s/%s", appState.UploadDir, entry.Name())
-			uploadErr := UploadFile(lapFile)
+			uploadErr := UploadFile(lapFile, appState)
 			if uploadErr != nil {
 				return fmt.Errorf("Failed to upload the file: %w", uploadErr)
 			}
@@ -53,14 +53,14 @@ func UploadSingleLap(appState *state.AppState) error {
 	return nil
 }
 
-func UploadFile(filename string) error {
+func UploadFile(filename string, appState *state.AppState) error {
 	fileBytes, readFileErr := os.ReadFile(filename)
 	if readFileErr != nil {
 		return fmt.Errorf("failed to read the file for the upload: %w", readFileErr)
 	}
 
 	// Create HTTP request
-	url := "https://unauthorizedupload-hwppiybqxq-ey.a.run.app"
+	url := appState.UploadURL
 	req, err := http.NewRequest("POST", url, bytes.NewReader(fileBytes))
 	if err != nil {
 		return fmt.Errorf("Error creating upload request: %w", err)
