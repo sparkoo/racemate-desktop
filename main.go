@@ -40,11 +40,6 @@ func main() {
 
 	myApp := app.New()
 	myWindow := myApp.NewWindow("RaceMate")
-	icon, err := fyne.LoadResourceFromPath("Icon.png")
-	if err != nil {
-		log.Println(fmt.Errorf("Failed to set an icon: %w", err))
-	}
-	myWindow.SetIcon(icon)
 
 	// Set a fixed window size
 	myWindow.Resize(fyne.NewSize(250, 350))
@@ -182,7 +177,6 @@ func main() {
 			}),
 		)
 		deskApp.SetSystemTrayMenu(menu)
-		deskApp.SetSystemTrayIcon(icon)
 	}
 
 	myWindow.ShowAndRun()

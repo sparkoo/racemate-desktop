@@ -50,7 +50,7 @@ clean:
 # Package for Windows using Fyne
 package-windows: build
 	@echo "Packaging $(BINARY_NAME) for Windows..."
-	fyne package -os windows -executable $(BUILD_DIR)/$(BINARY_NAME).exe
+	fyne package -os windows -executable $(BUILD_DIR)/$(BINARY_NAME).exe -icon Icon.ico
 	@echo "Windows package created"
 
 # Run the application
