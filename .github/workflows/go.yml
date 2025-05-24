@@ -9,7 +9,7 @@ on:
   push:
     branches: ["master"]
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   pull_request:
     branches: ["master"]
 
@@ -92,28 +92,41 @@ jobs:
           name: racemate-windows
           path: artifacts
 
-      - name: Generate changelog
-        id: changelog
-        shell: bash
-        run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -z "$PREVIOUS_TAG" ]; then
-            git log --pretty=format:"* %s (%h)" ${{ github.ref_name }} > changelog.txt
-          else
-            git log --pretty=format:"* %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }} > changelog.txt
-          fi
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          cat changelog.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: |
+            {"categories": [
+              {"title": "## 🚀 Features", "labels": ["feature", "enhancement"]},
+              {"title": "## 🐛 Fixes", "labels": ["fix", "bug"]},
+              {"title": "## 🧪 Tests", "labels": ["test"]},
+              {"title": "## 💬 Other", "labels": []}
+            ],
+            "template": "## What's Changed\n#{{CHANGELOG}}",
+            "pr_template": "* #{{TITLE}} by @#{{AUTHOR}} (#{{NUMBER}})",
+            "empty_template": "No changes",
+            "trim_values": true,
+            "max_tags_to_fetch": 200,
+            "max_pull_requests": 200,
+            "max_back_track_time_days": 365,
+            "exclude_merge_branches": ["Owner/main"],
+            "tag_resolver": {
+              "method": "semver",
+              "filter": {
+                "pattern": "v.*"
+              }
+            }
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ github.ref_name }}
-          body: |
-            ## Changelog
-            ${{ steps.changelog.outputs.CHANGELOG }}
+          body: ${{ steps.github_release.outputs.changelog }}
           files: |
             build/racemate.exe
             artifacts/*.exe
