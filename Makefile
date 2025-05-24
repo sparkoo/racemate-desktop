@@ -1,4 +1,4 @@
-.PHONY: build build-dev clean package-windows
+.PHONY: build build-dev clean package-windows test
 
 # Binary name
 BINARY_NAME=racemate
@@ -62,4 +62,9 @@ run: build
 run-dev: build-dev
 	@echo "Starting $(BINARY_NAME) in development mode..."
 	@./$(BUILD_DIR)/$(BINARY_NAME).exe
+
+# Run all tests
+test:
+	@echo "Running all tests..."
+	go test -v ./...
 	

@@ -141,6 +141,14 @@ func (am *AuthManager) Logout() error {
 	return nil
 }
 
+// HTTPClient interface for making HTTP requests
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// Default HTTP client used by the auth manager
+var httpClient HTTPClient = &http.Client{Timeout: 10 * time.Second}
+
 // RefreshIDToken refreshes the ID token using Firebase Auth REST API
 func (am *AuthManager) RefreshIDToken() error {
 	userData, err := am.LoadUserData()
@@ -177,8 +185,7 @@ func (am *AuthManager) RefreshIDToken() error {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send refresh token request: %w", err)
 	}
