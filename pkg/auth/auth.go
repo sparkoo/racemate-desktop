@@ -108,7 +108,7 @@ func (am *AuthManager) IsLoggedIn() bool {
 	if time.Now().After(userData.ExpiresAt) {
 		// Token is expired, attempt to refresh it
 		fmt.Printf("Token expired for user: %s, attempting to refresh...\n", userData.UID)
-		
+
 		// Try to refresh the token
 		err := am.RefreshIDToken()
 		if err != nil {
@@ -117,7 +117,7 @@ func (am *AuthManager) IsLoggedIn() bool {
 			am.Logout()
 			return false
 		}
-		
+
 		// Token was successfully refreshed, user is logged in
 		return true
 	}
@@ -212,7 +212,7 @@ func (am *AuthManager) RefreshIDToken() error {
 
 	// Update user data with new tokens
 	userData.IDToken = refreshResponse.IDToken
-	
+
 	// Only update refresh token if a new one was provided
 	if refreshResponse.RefreshToken != "" {
 		userData.RefreshToken = refreshResponse.RefreshToken
