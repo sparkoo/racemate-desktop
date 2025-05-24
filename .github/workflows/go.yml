@@ -98,10 +98,13 @@ jobs:
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREVIOUS_TAG" ]; then
-            echo "CHANGELOG=$(git log --pretty=format:"* %s (%h)" ${{ github.ref_name }})" >> $GITHUB_OUTPUT
+            git log --pretty=format:"* %s (%h)" ${{ github.ref_name }} > changelog.txt
           else
-            echo "CHANGELOG=$(git log --pretty=format:"* %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }})" >> $GITHUB_OUTPUT
+            git log --pretty=format:"* %s (%h)" $PREVIOUS_TAG..${{ github.ref_name }} > changelog.txt
           fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          cat changelog.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
