@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.6.1
 	github.com/sparkoo/acctelemetry-go v0.0.0-20250223130948-b99bf47f9660
 	github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9
+	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -36,7 +37,6 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/yuin/goldmark v1.7.11 // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
