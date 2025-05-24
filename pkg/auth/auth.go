@@ -1,10 +1,14 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/sparkoo/racemate-desktop/pkg/state"
@@ -102,14 +106,20 @@ func (am *AuthManager) IsLoggedIn() bool {
 
 	// Check if token is expired
 	if time.Now().After(userData.ExpiresAt) {
-		// Token is expired, but we could try to refresh it
-		// For now, we'll just consider the user logged out
-		// In a production app, you might attempt to refresh the token here
-
-		// Log that token is expired
-		fmt.Printf("Token expired for user: %s\n", userData.UID)
-		am.Logout()
-		return false
+		// Token is expired, attempt to refresh it
+		fmt.Printf("Token expired for user: %s, attempting to refresh...\n", userData.UID)
+		
+		// Try to refresh the token
+		err := am.RefreshIDToken()
+		if err != nil {
+			// If refresh fails, log the user out
+			fmt.Printf("Failed to refresh token: %v\n", err)
+			am.Logout()
+			return false
+		}
+		
+		// Token was successfully refreshed, user is logged in
+		return true
 	}
 
 	return true
@@ -131,30 +141,92 @@ func (am *AuthManager) Logout() error {
 	return nil
 }
 
-// RefreshIDToken refreshes the ID token
-// For a desktop app using Firebase Web SDK, we have limited options
+// RefreshIDToken refreshes the ID token using Firebase Auth REST API
 func (am *AuthManager) RefreshIDToken() error {
 	userData, err := am.LoadUserData()
 	if err != nil || userData == nil {
 		return fmt.Errorf("no user data available to refresh token")
 	}
 
-	// In a desktop app using Firebase Web SDK, we have several options:
-	// 1. Re-launch the login flow (webview) when token expires
-	// 2. Use a custom token approach with Firebase Admin SDK (requires server)
-	// 3. Implement a native Firebase Auth REST API client
+	// Get Firebase API key from environment
+	apiKey := os.Getenv("FIREBASE_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("Firebase API key not found in environment variables")
+	}
 
-	// For option #3, here's how you would implement it:
-	// Note: This requires your Firebase API key which should be kept secure
+	// Prepare the request to Firebase Auth API
+	refreshURL := fmt.Sprintf("https://securetoken.googleapis.com/v1/token?key=%s", apiKey)
+	payload := map[string]string{
+		"grant_type":    "refresh_token",
+		"refresh_token": userData.RefreshToken,
+	}
 
-	// For now, we'll just mark the token as expired
-	// The main app will detect this and prompt for re-login
+	// Convert payload to JSON
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal refresh token payload: %w", err)
+	}
 
-	// Log that token refresh was attempted
-	fmt.Printf("Token refresh attempted for user: %s\n", userData.UID)
+	// Create HTTP request
+	req, err := http.NewRequest("POST", refreshURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create refresh token request: %w", err)
+	}
 
-	// In a production app, you would extend the token lifetime
-	// For now, we'll just return nil and let the app handle re-login
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send refresh token request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		// Read error response
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("refresh token request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var refreshResponse struct {
+		IDToken      string `json:"id_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    string `json:"expires_in"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&refreshResponse); err != nil {
+		return fmt.Errorf("failed to decode refresh token response: %w", err)
+	}
+
+	// Convert expires_in to seconds
+	expiresInSeconds, err := strconv.Atoi(refreshResponse.ExpiresIn)
+	if err != nil {
+		// Default to 1 hour if parsing fails
+		expiresInSeconds = 3600
+		fmt.Printf("Warning: Failed to parse expires_in value: %v, using default of 1 hour\n", err)
+	}
+
+	// Update user data with new tokens
+	userData.IDToken = refreshResponse.IDToken
+	
+	// Only update refresh token if a new one was provided
+	if refreshResponse.RefreshToken != "" {
+		userData.RefreshToken = refreshResponse.RefreshToken
+	}
+
+	// Update expiration time
+	userData.ExpiresAt = time.Now().Add(time.Duration(expiresInSeconds) * time.Second)
+
+	// Save updated user data
+	if err := am.SaveUserData(userData); err != nil {
+		return fmt.Errorf("failed to save refreshed user data: %w", err)
+	}
+
+	fmt.Printf("Token successfully refreshed for user: %s\n", userData.UID)
 	return nil
 }
 
