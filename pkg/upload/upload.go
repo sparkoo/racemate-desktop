@@ -74,7 +74,7 @@ func UploadFile(filename string, appState *state.AppState) error {
 	// Set headers
 	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("content-encoding", "gzip")
-	
+
 	// Add authorization token if user is logged in
 	authManager := auth.NewAuthManager(appState)
 	if authManager.IsLoggedIn() {

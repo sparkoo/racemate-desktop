@@ -154,15 +154,15 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Parse JSON request body with full user data
 	var userData struct {
-		IDToken       string `json:"idToken"`
-		RefreshToken  string `json:"refreshToken"`
-		UID           string `json:"uid"`
-		DisplayName   string `json:"displayName"`
-		Email         string `json:"email"`
-		PhotoURL      string `json:"photoURL"`
-		PhoneNumber   string `json:"phoneNumber"`
-		EmailVerified bool   `json:"emailVerified"`
-		ExpiresIn     float64 `json:"expiresIn"` // Firebase returns this as a float
+		IDToken       string                   `json:"idToken"`
+		RefreshToken  string                   `json:"refreshToken"`
+		UID           string                   `json:"uid"`
+		DisplayName   string                   `json:"displayName"`
+		Email         string                   `json:"email"`
+		PhotoURL      string                   `json:"photoURL"`
+		PhoneNumber   string                   `json:"phoneNumber"`
+		EmailVerified bool                     `json:"emailVerified"`
+		ExpiresIn     float64                  `json:"expiresIn"` // Firebase returns this as a float
 		ProviderData  []map[string]interface{} `json:"providerData"`
 	}
 
@@ -178,9 +178,9 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// For now, we'll just log the user information and create a session
 
 	// Log user information (safely handling sensitive data)
-	log.Printf("Login attempt for user: %s (UID: %s, Email: %s)\n", 
+	log.Printf("Login attempt for user: %s (UID: %s, Email: %s)\n",
 		userData.DisplayName, userData.UID, userData.Email)
-	
+
 	// Log a portion of the token (safely handling short tokens)
 	tokenPreview := userData.IDToken
 	if len(tokenPreview) > 20 {
@@ -195,7 +195,7 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		if userData.ExpiresIn > 0 {
 			expiresInSeconds = int(userData.ExpiresIn) // Convert float to int
 		}
-		
+
 		// Create user data object
 		authData := &auth.UserData{
 			UID:          userData.UID,
@@ -206,7 +206,7 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			RefreshToken: userData.RefreshToken,
 			ExpiresAt:    time.Now().Add(time.Duration(expiresInSeconds) * time.Second),
 		}
-		
+
 		// Save to persistent storage
 		if err := s.authManager.SaveUserData(authData); err != nil {
 			log.Printf("Error saving user data: %v\n", err)
@@ -234,7 +234,7 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": "Authentication successful",
 	})
-	
+
 	// Schedule server shutdown after sending the response
 	go func() {
 		// Wait a moment to ensure the response is sent

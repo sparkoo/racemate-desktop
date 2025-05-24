@@ -62,7 +62,7 @@
         display: none;
       }
       .success-message {
-        color: #4CAF50;
+        color: #4caf50;
         font-size: 16px;
         margin-top: 20px;
         text-align: center;
@@ -70,7 +70,7 @@
         padding: 15px;
         background-color: #f1f8e9;
         border-radius: 4px;
-        border-left: 4px solid #4CAF50;
+        border-left: 4px solid #4caf50;
       }
       .countdown {
         margin-top: 20px;
@@ -88,52 +88,73 @@
       <h1>RaceMate Login</h1>
       <div id="errorMessage" class="error-message"></div>
       <div id="successMessage" class="success-message">
-        <strong>Login successful!</strong><br>
-        You have been successfully logged in.<br>
+        <strong>Login successful!</strong><br />
+        You have been successfully logged in.<br />
         This window will close automatically in a few seconds.
       </div>
       <button type="button" id="googleLoginButton">
         <span class="google-icon">
-          <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-            <path fill="none" d="M0 0h48v48H0z"/>
+          <svg
+            width="18"
+            height="18"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 48 48"
+          >
+            <path
+              fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+            />
+            <path
+              fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+            />
+            <path fill="none" d="M0 0h48v48H0z" />
           </svg>
         </span>
         Sign in with Google
       </button>
       <div class="countdown">
-        This login page will automatically close in <span id="countdown-timer" class="countdown-timer">5:00</span>
+        This login page will automatically close in
+        <span id="countdown-timer" class="countdown-timer">5:00</span>
       </div>
     </div>
 
     <script>
       // Countdown timer - 5 minutes
       let timeLeft = 5 * 60; // 5 minutes in seconds
-      const countdownElement = document.getElementById('countdown-timer');
-      
+      const countdownElement = document.getElementById("countdown-timer");
+
       function updateCountdown() {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
-        countdownElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        
+        countdownElement.textContent = `${minutes}:${
+          seconds < 10 ? "0" : ""
+        }${seconds}`;
+
         if (timeLeft <= 0) {
           clearInterval(countdownInterval);
-          countdownElement.textContent = '0:00';
-          document.getElementById('errorMessage').textContent = 'Login session expired. Please restart the application.';
-          document.getElementById('errorMessage').style.display = 'block';
-          document.getElementById('googleLoginButton').disabled = true;
+          countdownElement.textContent = "0:00";
+          document.getElementById("errorMessage").textContent =
+            "Login session expired. Please restart the application.";
+          document.getElementById("errorMessage").style.display = "block";
+          document.getElementById("googleLoginButton").disabled = true;
         } else {
           timeLeft--;
         }
       }
-      
+
       // Update countdown every second
       updateCountdown();
       const countdownInterval = setInterval(updateCountdown, 1000);
-      
+
       // Firebase configuration loaded from environment variables
       const firebaseConfig = {
         apiKey: "{{.FirebaseAPIKey}}",
@@ -147,7 +168,7 @@
 
       // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
-      
+
       // Set persistence to LOCAL - this will use IndexedDB to store auth state
       // This allows Firebase to remember the user's login state
       firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -160,12 +181,12 @@
       googleLoginButton.addEventListener("click", function () {
         const provider = new firebase.auth.GoogleAuthProvider();
         // Add scopes if needed
-        provider.addScope('profile');
-        provider.addScope('email');
-        
+        provider.addScope("profile");
+        provider.addScope("email");
+
         // Optional: Set custom parameters
         provider.setCustomParameters({
-          prompt: 'select_account'
+          prompt: "select_account",
         });
 
         firebase
@@ -174,9 +195,9 @@
           .then((result) => {
             // Get the user information and ID token
             const user = result.user;
-            
+
             // Get the ID token result for expiration time
-            return user.getIdTokenResult().then(idTokenResult => {
+            return user.getIdTokenResult().then((idTokenResult) => {
               // Get a fresh ID token
               return firebase
                 .auth()
@@ -216,24 +237,26 @@
             if (response.ok) {
               // Show success message
               document.getElementById("successMessage").style.display = "block";
-              document.getElementById("googleLoginButton").style.display = "none";
+              document.getElementById("googleLoginButton").style.display =
+                "none";
               document.querySelector(".countdown").style.display = "none";
-              
+
               // Clear the countdown interval
               clearInterval(countdownInterval);
-              
+
               // Wait a moment to show the success message before closing
               setTimeout(() => {
                 // Update message to indicate window is closing
-                document.getElementById("successMessage").innerHTML += "<br><br>Closing window...";
-                
+                document.getElementById("successMessage").innerHTML +=
+                  "<br><br>Closing window...";
+
                 // Actually close the browser window
                 setTimeout(() => {
                   window.close();
-                  
+
                   // Fallback in case window.close() is blocked by the browser
                   // Some browsers block window.close() if the window wasn't opened by JavaScript
-                  document.getElementById("successMessage").innerHTML = 
+                  document.getElementById("successMessage").innerHTML =
                     "<strong>Login successful!</strong><br>" +
                     "You have been successfully logged in.<br>" +
                     "Please close this window manually.";
