@@ -20,16 +20,54 @@ func UploadJob(ctx context.Context) error {
 		return fmt.Errorf("Failed to get at upload job: %w", err)
 	}
 
+	// Create auth manager once
+	authManager := auth.NewAuthManager(appState)
+
 	ticker := time.NewTicker(5 * time.Second)
 	for range ticker.C {
-		if !appState.TelemetryOnline {
-			if uploadErr := UploadSingleLap(appState); uploadErr != nil {
-				fmt.Printf("Failed to upload a single lap: %s\n", uploadErr)
+		// Skip upload if telemetry is online (we're racing)
+		if appState.TelemetryOnline {
+			continue
+		}
+
+		// Check if there are laps to upload
+		hasLapsToUpload := hasLapsToUpload(appState)
+		if !hasLapsToUpload {
+			continue
+		}
+
+		// Check if user is authenticated before attempting upload
+		if !authManager.IsLoggedIn() {
+			// Log this only occasionally to avoid spamming the log
+			if time.Now().Second()%30 == 0 {
+				fmt.Println("Skipping upload: user not logged in but has laps to upload")
 			}
+			continue
+		}
+
+		// Proceed with upload since user is authenticated and has laps
+		if uploadErr := UploadSingleLap(appState); uploadErr != nil {
+			fmt.Printf("Failed to upload a single lap: %s\n", uploadErr)
 		}
 	}
 
 	return nil
+}
+
+// hasLapsToUpload checks if there are any lap files waiting to be uploaded
+func hasLapsToUpload(appState *state.AppState) bool {
+	entries, err := os.ReadDir(appState.UploadDir)
+	if err != nil {
+		fmt.Printf("Failed to read upload directory: %s\n", err)
+		return false
+	}
+	
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
+			return true
+		}
+	}
+	return false
 }
 
 func UploadSingleLap(appState *state.AppState) error {
