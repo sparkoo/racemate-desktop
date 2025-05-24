@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,11 +26,6 @@ const APP_NAME = "RaceMate"
 const ACC_STATUS_LABEL_TEXT = `ACC session info: %s`
 const CONTEXT_TELEMETRY = "telemetry"
 const WEB_SERVER_PORT = 12123
-
-// Poll rate constants
-const MIN_POLL_RATE = 10
-const MAX_POLL_RATE = 100
-const POLL_RATE_STEP = 10
 
 func main() {
 	appState, err := initApp(APP_NAME)
@@ -76,34 +70,6 @@ func main() {
 	statusLabel := widget.NewLabel("ACC session info: offline") // Label for ACC status
 	userLabel := widget.NewLabel(userInfo)                      // Label for user login info
 
-	// Create poll rate slider and label
-	// Convert time.Duration to milliseconds for the slider
-	currentPollRate := int(appState.PollRate.Milliseconds())
-	pollRateLabel := widget.NewLabel(fmt.Sprintf("Poll Rate: %d ms", currentPollRate))
-	pollRateSlider := widget.NewSlider(float64(MIN_POLL_RATE), float64(MAX_POLL_RATE))
-	pollRateSlider.Step = float64(POLL_RATE_STEP)
-	pollRateSlider.Value = float64(currentPollRate)
-
-	// Update poll rate when slider changes
-	pollRateSlider.OnChanged = func(value float64) {
-		// Round to nearest step
-		roundedValue := int(math.Round(value/float64(POLL_RATE_STEP))) * POLL_RATE_STEP
-		if roundedValue < MIN_POLL_RATE {
-			roundedValue = MIN_POLL_RATE
-		} else if roundedValue > MAX_POLL_RATE {
-			roundedValue = MAX_POLL_RATE
-		}
-
-		// Update the slider value to show the rounded value
-		pollRateSlider.Value = float64(roundedValue)
-
-		// Update the label
-		pollRateLabel.SetText(fmt.Sprintf("Poll Rate: %d ms", roundedValue))
-
-		// Update the app state
-		appState.PollRate = time.Duration(roundedValue) * time.Millisecond
-		appState.Logger.Info("Poll rate updated", slog.Int("pollRate", roundedValue))
-	}
 	loginButton := widget.NewButton("Login", func() {
 		// Start web server and open browser for login
 		if webServer.IsActive() {
@@ -142,11 +108,6 @@ func main() {
 	myWindow.SetContent(container.NewVBox(
 		statusLabel, // ACC status label
 		authButtons,
-		// Poll rate controls
-		container.NewVBox(
-			pollRateLabel,
-			pollRateSlider,
-		),
 		widget.NewButton("Hide to Tray", func() {
 			myWindow.Hide()
 		}),
@@ -229,7 +190,7 @@ func main() {
 
 func initApp(appName string) (*state.AppState, error) {
 	appState := &state.AppState{
-		PollRate:  10 * time.Millisecond,
+		PollRate:  100 * time.Millisecond,
 		UploadURL: "https://lapupload-hwppiybqxq-ey.a.run.app",
 	}
 
