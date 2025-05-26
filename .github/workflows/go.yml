@@ -89,10 +89,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ env.RELEASE_VERSION }}
-          body: ${{ steps.github_release.outputs.changelog }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          body: |
+            Automated release for commit ${{ github.sha }}
+            Run #${{ github.run_number }}.${{ github.run_attempt }}
           files: |
             build/racemate.exe
             artifacts/*.exe
           draft: false
           prerelease: false
-          generate_release_notes: true
