@@ -62,7 +62,7 @@ run-dev: build-dev
 	@./$(BUILD_DIR)/$(BINARY_NAME).exe
 
 # Run all tests
-test:
+test: generate-firebase-config
 	@echo "Running all tests..."
 	go test -v ./...
 	
