@@ -24,6 +24,7 @@ type Server struct {
 	isActive       bool
 	app            fyne.App
 	firebaseConfig *config.FirebaseConfig
+	embeddedConfig *FirebaseConfigJSON
 	timeoutTimer   *time.Timer
 	timeoutDone    chan bool
 	authManager    *auth.AuthManager
@@ -31,7 +32,7 @@ type Server struct {
 
 // NewServer creates a new web server instance
 func NewServer(port int, app fyne.App) *Server {
-	// Load Firebase config from environment variables
+	// Load Firebase config from environment variables for backward compatibility
 	firebaseConfig := config.NewFirebaseConfig(
 		os.Getenv("FIREBASE_API_KEY"),
 		os.Getenv("FIREBASE_AUTH_DOMAIN"),
@@ -42,11 +43,18 @@ func NewServer(port int, app fyne.App) *Server {
 		os.Getenv("FIREBASE_MEASUREMENT_ID"),
 	)
 
+	// Load embedded Firebase configuration
+	embeddedConfig, err := LoadEmbeddedFirebaseConfig()
+	if err != nil {
+		log.Printf("Warning: Could not load embedded Firebase config: %v. Using environment variables instead.", err)
+	}
+
 	return &Server{
 		port:           port,
 		isActive:       false,
 		app:            app,
 		firebaseConfig: firebaseConfig,
+		embeddedConfig: embeddedConfig,
 	}
 }
 
@@ -130,15 +138,46 @@ func (s *Server) IsActive() bool {
 
 // handleLogin serves the login page
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/login.html")
+	// Parse the template from the embedded filesystem
+	tmplContent, err := templateFS.ReadFile("templates/login.html")
 	if err != nil {
-		http.Error(w, "Failed to load template", http.StatusInternalServerError)
-		log.Printf("Error loading template: %v\n", err)
+		http.Error(w, "Failed to read template", http.StatusInternalServerError)
+		log.Printf("Error reading template: %v\n", err)
 		return
 	}
 
+	// Parse the template
+	tmpl, err := template.New("login").Parse(string(tmplContent))
+	if err != nil {
+		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
+		log.Printf("Error parsing template: %v\n", err)
+		return
+	}
+
+	// Get Firebase configuration data for the template
+	var templateData map[string]string
+	
+	// Prefer embedded config if available
+	if s.embeddedConfig != nil {
+		// Convert embedded config to template data format
+		templateData = map[string]string{
+			"FirebaseAPIKey":            s.embeddedConfig.APIKey,
+			"FirebaseAuthDomain":        s.embeddedConfig.AuthDomain,
+			"FirebaseProjectID":         s.embeddedConfig.ProjectID,
+			"FirebaseStorageBucket":     s.embeddedConfig.StorageBucket,
+			"FirebaseMessagingSenderID": s.embeddedConfig.MessagingSenderID,
+			"FirebaseAppID":             s.embeddedConfig.AppID,
+			"FirebaseMeasurementID":     s.embeddedConfig.MeasurementID,
+		}
+		log.Printf("Rendering template with embedded Firebase config")
+	} else {
+		// Fall back to environment variable config
+		templateData = s.firebaseConfig.TemplateData()
+		log.Printf("Rendering template with environment Firebase config")
+	}
+
 	// Pass Firebase configuration to the template
-	err = tmpl.Execute(w, s.firebaseConfig.TemplateData())
+	err = tmpl.Execute(w, templateData)
 	if err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		log.Printf("Error rendering template: %v\n", err)

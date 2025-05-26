@@ -24,3 +24,4 @@ go.work.sum
 # env file
 .env
 build/
+pkg/webserver/embedded/firebase_config.json
