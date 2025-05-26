@@ -130,7 +130,7 @@ func (s *Server) IsActive() bool {
 
 // handleLogin serves the login page
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/login.html")
+	tmpl, err := template.New("login.html").Parse(loginHTML)
 	if err != nil {
 		http.Error(w, "Failed to load template", http.StatusInternalServerError)
 		log.Printf("Error loading template: %v\n", err)
@@ -262,3 +262,6 @@ func (s *Server) openBrowser() {
 		log.Printf("Error opening browser with Fyne: %v\n", err)
 	}
 }
+
+//go:embed ../../templates/login.html
+var loginHTML string
