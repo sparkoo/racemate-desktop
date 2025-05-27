@@ -105,9 +105,6 @@ jobs:
           body: |
             Automated release for commit ${{ github.sha }}
             Run #${{ github.run_number }}.${{ github.run_attempt }}
-            
-            ## Checksums (SHA-256)
-            - racemate.exe: "`${{ env.RACEMATE_CHECKSUM }}`"
           files: |
             build/racemate.exe
             build/racemate.exe.sha256
