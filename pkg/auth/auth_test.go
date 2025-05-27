@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +37,8 @@ func setupTestAuthManager(t *testing.T) (*AuthManager, string, func()) {
 	// Create app state with the temporary directory
 	appState := &state.AppState{
 		DataDir: tempDir,
+		// Initialize a test logger that won't output anything
+		Logger: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError})),
 	}
 
 	// Create auth manager
