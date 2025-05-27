@@ -1,4 +1,4 @@
-.PHONY: build build-dev clean package-windows test generate-firebase-config
+.PHONY: build clean package-windows test generate-firebase-config
 
 # Binary name
 BINARY_NAME=racemate
@@ -34,12 +34,6 @@ build: generate-firebase-config
 	@mkdir -p $(BUILD_DIR)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -v -o $(BUILD_DIR)/$(BINARY_NAME).exe
 
-# Development build using values from .env file
-build-dev: generate-firebase-config
-	@echo "Building $(BINARY_NAME) for development..."
-	@mkdir -p $(BUILD_DIR)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -v -o $(BUILD_DIR)/$(BINARY_NAME).exe
-
 # Clean build artifacts
 clean:
 	@echo "Cleaning..."
@@ -57,9 +51,9 @@ run: build
 	@./$(BUILD_DIR)/$(BINARY_NAME).exe
 
 # Run the development version
-run-dev: build-dev
+run-dev: generate-firebase-config
 	@echo "Starting $(BINARY_NAME) in development mode..."
-	@./$(BUILD_DIR)/$(BINARY_NAME).exe
+	go run main.go
 
 # Run all tests
 test: generate-firebase-config
