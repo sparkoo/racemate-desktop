@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -217,7 +216,7 @@ func initLogger(appState *state.AppState) {
 
 	// Configure slog options
 	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level:     slog.LevelInfo,
 		AddSource: true,
 	}
 
@@ -231,7 +230,7 @@ func initLogger(appState *state.AppState) {
 	appState.Logger = logger
 
 	// Log startup message
-	logger.Info("Logger initialized", 
+	logger.Info("Logger initialized",
 		"logFile", logFilePath,
 		"maxSize", "10MB",
 		"maxBackups", 5,
@@ -243,8 +242,6 @@ func initLogger(appState *state.AppState) {
 	log.SetFlags(0) // Remove default timestamps as slog will add them
 	log.SetOutput(&logAdapter{logger: logger})
 }
-
-
 
 // logAdapter is a custom io.Writer that forwards standard log package writes to slog
 type logAdapter struct {
@@ -258,13 +255,7 @@ func (a *logAdapter) Write(p []byte) (n int, err error) {
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}
-
-	// Check if this is a Fyne log message
-	if strings.Contains(msg, "Fyne") {
-		a.logger.Info("Fyne", "message", msg)
-	} else {
-		a.logger.Info(msg)
-	}
+	a.logger.Info(msg)
 
 	// Return the original length to satisfy io.Writer
 	return len(p), nil
