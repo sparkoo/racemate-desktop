@@ -3,7 +3,7 @@ package webserver
 import (
 	"embed"
 	"encoding/json"
-	"log"
+	"log/slog"
 )
 
 //go:embed templates/login.html
@@ -25,14 +25,14 @@ type FirebaseConfigJSON struct {
 func LoadEmbeddedFirebaseConfig() (*FirebaseConfigJSON, error) {
 	configData, err := templateFS.ReadFile("embedded/firebase_config.json")
 	if err != nil {
-		log.Printf("Error reading embedded Firebase config: %v\n", err)
+		slog.Error("Error reading embedded Firebase config", "error", err)
 		return nil, err
 	}
 
 	var config FirebaseConfigJSON
 	err = json.Unmarshal(configData, &config)
 	if err != nil {
-		log.Printf("Error unmarshaling Firebase config: %v\n", err)
+		slog.Error("Error unmarshaling Firebase config", "error", err)
 		return nil, err
 	}
 

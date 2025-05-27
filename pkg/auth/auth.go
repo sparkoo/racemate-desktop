@@ -107,13 +107,13 @@ func (am *AuthManager) IsLoggedIn() bool {
 	// Check if token is expired
 	if time.Now().After(userData.ExpiresAt) {
 		// Token is expired, attempt to refresh it
-		fmt.Printf("Token expired for user: %s, attempting to refresh...\n", userData.UID)
+		am.appState.Logger.Info("Token expired, attempting to refresh", "uid", userData.UID)
 
 		// Try to refresh the token
 		err := am.RefreshIDToken()
 		if err != nil {
 			// If refresh fails, log the user out
-			fmt.Printf("Failed to refresh token: %v\n", err)
+			am.appState.Logger.Error("Failed to refresh token", "error", err)
 			am.Logout()
 			return false
 		}
@@ -214,7 +214,7 @@ func (am *AuthManager) RefreshIDToken() error {
 	if err != nil {
 		// Default to 1 hour if parsing fails
 		expiresInSeconds = 3600
-		fmt.Printf("Warning: Failed to parse expires_in value: %v, using default of 1 hour\n", err)
+		am.appState.Logger.Warn("Failed to parse expires_in value, using default", "error", err, "default", "1 hour")
 	}
 
 	// Update user data with new tokens
@@ -233,7 +233,7 @@ func (am *AuthManager) RefreshIDToken() error {
 		return fmt.Errorf("failed to save refreshed user data: %w", err)
 	}
 
-	fmt.Printf("Token successfully refreshed for user: %s\n", userData.UID)
+	am.appState.Logger.Info("Token successfully refreshed", "uid", userData.UID)
 	return nil
 }
 
