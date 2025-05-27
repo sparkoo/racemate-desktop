@@ -57,6 +57,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: windows-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -86,7 +87,7 @@ jobs:
 
       - name: Generate Release Version
         id: version
-        run: echo "RELEASE_VERSION=v${{ github.run_number }}.${{ github.run_attempt }}-${{ env.SHORT_SHA }}" >> $env:GITHUB_ENV
+        run: echo "RELEASE_VERSION=v0.${{ github.run_number }}.${{ github.run_attempt }}-${{ env.SHORT_SHA }}" >> $env:GITHUB_ENV
 
       - name: Create Release
         id: create_release
