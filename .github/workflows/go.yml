@@ -84,7 +84,7 @@ jobs:
         run: |
           cd build
           Get-FileHash -Algorithm SHA256 racemate.exe | Out-File -FilePath racemate.exe.sha256
-          Get-Content racemate.exe.sha256 | ForEach-Object { $env:RACEMATE_CHECKSUM = $_.Split(' ')[-1] }
+          Get-Content racemate.exe.sha256 | ForEach-Object { $env:RACEMATE_CHECKSUM = $_.Split(' ')[-1].Trim() }
           echo "RACEMATE_CHECKSUM=$env:RACEMATE_CHECKSUM" >> $env:GITHUB_ENV
 
       - name: Generate Short SHA
