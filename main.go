@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -18,10 +16,10 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
 	"github.com/sparkoo/racemate-desktop/pkg/auth"
+	"github.com/sparkoo/racemate-desktop/pkg/logger"
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 	"github.com/sparkoo/racemate-desktop/pkg/upload"
 	"github.com/sparkoo/racemate-desktop/pkg/webserver"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const APP_NAME = "RaceMate"
@@ -201,64 +199,9 @@ func initApp(appName string) (*state.AppState, error) {
 }
 
 func initLogger(appState *state.AppState) {
-	// Configure log file with rotation
-	logFilePath := filepath.Join(appState.LogsDir, "racemate.log")
-	fileLogger := &lumberjack.Logger{
-		Filename:   logFilePath,
-		MaxSize:    10, // megabytes
-		MaxBackups: 5,
-		MaxAge:     30, // days
-		Compress:   true,
-	}
-
-	// Create a multi-writer that writes to both stdout and the log file
-	multiWriter := io.MultiWriter(os.Stdout, fileLogger)
-
-	// Configure slog options
-	opts := &slog.HandlerOptions{
-		Level:     slog.LevelInfo,
-		AddSource: true,
-	}
-
-	// Use JSON format for structured logging
-	handler := slog.NewJSONHandler(multiWriter, opts)
-
-	// Create the logger
-	logger := slog.New(handler)
-
-	// Set the logger in the app state
-	appState.Logger = logger
-
-	// Log startup message
-	logger.Info("Logger initialized",
-		"logFile", logFilePath,
-		"maxSize", "10MB",
-		"maxBackups", 5,
-		"maxAge", "30 days",
-		"compress", true)
-
-	// Create a custom logger adapter for the standard log package
-	// This ensures that log.Printf, log.Println, etc. will use our structured logger
-	log.SetFlags(0) // Remove default timestamps as slog will add them
-	log.SetOutput(&logAdapter{logger: logger})
-}
-
-// logAdapter is a custom io.Writer that forwards standard log package writes to slog
-type logAdapter struct {
-	logger *slog.Logger
-}
-
-// Write implements io.Writer for the logAdapter
-func (a *logAdapter) Write(p []byte) (n int, err error) {
-	// Remove trailing newlines for cleaner log output
-	msg := string(p)
-	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
-		msg = msg[:len(msg)-1]
-	}
-	a.logger.Info(msg)
-
-	// Return the original length to satisfy io.Writer
-	return len(p), nil
+	// Initialize logger with default configuration
+	config := logger.DefaultConfig(appState.LogsDir)
+	appState.Logger = logger.Initialize(config)
 }
 
 func initDataDirs(appName string, appState *state.AppState) error {
