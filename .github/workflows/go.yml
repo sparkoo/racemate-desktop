@@ -80,6 +80,13 @@ jobs:
           name: racemate-windows
           path: artifacts
 
+      - name: Generate checksums
+        run: |
+          cd build
+          Get-FileHash -Algorithm SHA256 racemate.exe | Out-File -FilePath racemate.exe.sha256
+          Get-Content racemate.exe.sha256 | ForEach-Object { $env:RACEMATE_CHECKSUM = $_.Split(' ')[-1] }
+          echo "RACEMATE_CHECKSUM=$env:RACEMATE_CHECKSUM" >> $env:GITHUB_ENV
+
       - name: Generate Short SHA
         id: short_sha
         run: echo "SHORT_SHA=$('${{ github.sha }}'.Substring(0, 7))" >> $env:GITHUB_ENV
@@ -97,8 +104,12 @@ jobs:
           body: |
             Automated release for commit ${{ github.sha }}
             Run #${{ github.run_number }}.${{ github.run_attempt }}
+            
+            ## Checksums (SHA-256)
+            - racemate.exe: `${{ env.RACEMATE_CHECKSUM }}`
           files: |
             build/racemate.exe
+            build/racemate.exe.sha256
             artifacts/*.exe
           draft: false
           prerelease: false
