@@ -25,14 +25,15 @@ func (s *Scraper) scrape(ctx context.Context, telemetry *acctelemetry.AccTelemet
 	appState, err := state.GetAppState(ctx)
 	var pollRate time.Duration
 	if err != nil {
-		fmt.Printf("failed to get app state to save to the file: %s", err)
+		slog.Error("Failed to get app state to save to the file", "error", err)
 		pollRate = 1 * time.Second
 	} else {
 		pollRate = appState.PollRate
 	}
 
 	if !s.scraping {
-		fmt.Println("starting scraping the telemetry")
+		log := state.GetLogger(ctx)
+		log.Info("Starting scraping the telemetry")
 		s.scraping = true
 		go func(telemetry *acctelemetry.AccTelemetry) {
 			ticker := time.NewTicker(pollRate) // main ticker for polling the telemetry data
@@ -62,7 +63,10 @@ func (s *Scraper) processFrame(ctx context.Context, frame *message.Frame, teleme
 			justFinishedLap.Timestamp = uint64(time.Now().Unix())
 			go s.finalizeLap(ctx, justFinishedLap, telemetry)
 		} else {
-			fmt.Printf("lap is not valid, %d, %f\n", s.lastFrame.IsValidLap, s.currentLap.Frames[0].NormalizedCarPosition)
+			log := state.GetLogger(ctx)
+			log.Debug("Lap is not valid", 
+				"isValidLap", s.lastFrame.IsValidLap, 
+				"startPosition", s.currentLap.Frames[0].NormalizedCarPosition)
 		}
 
 		s.currentLap = startNewLap(telemetry)
@@ -102,7 +106,8 @@ func (s *Scraper) finalizeLap(ctx context.Context, lap *message.Lap, telemetry *
 }
 
 func (s *Scraper) stop() {
-	fmt.Println("stop scraping")
+	log := state.GetLogger(context.Background())
+	log.Info("Stopping telemetry scraping")
 	s.scraping = false
 }
 

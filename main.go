@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/sparkoo/racemate-desktop/pkg/acc"
 	"github.com/sparkoo/racemate-desktop/pkg/auth"
+	"github.com/sparkoo/racemate-desktop/pkg/logger"
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 	"github.com/sparkoo/racemate-desktop/pkg/upload"
 	"github.com/sparkoo/racemate-desktop/pkg/webserver"
@@ -30,7 +30,8 @@ const WEB_SERVER_PORT = 12123
 func main() {
 	appState, err := initApp(APP_NAME)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Fatal error during app initialization", "error", err)
+		os.Exit(1)
 	}
 
 	// Initialize auth manager
@@ -75,7 +76,7 @@ func main() {
 		err := webServer.Start()
 		if err != nil {
 			userLabel.SetText(fmt.Sprintf("Error starting login server: %v", err))
-			log.Printf("Error starting login server: %v\n", err)
+			appState.Logger.Error("Error starting login server", "error", err)
 			return
 		}
 
@@ -86,7 +87,7 @@ func main() {
 		err := authManager.Logout()
 		if err != nil {
 			userLabel.SetText(fmt.Sprintf("Error logging out: %v", err))
-			log.Printf("Error logging out: %v\n", err)
+			appState.Logger.Error("Error logging out", "error", err)
 			return
 		}
 		userLabel.SetText("Logged out successfully")
@@ -110,7 +111,7 @@ func main() {
 			// Stop web server if running
 			if webServer.IsActive() {
 				if err := webServer.Stop(); err != nil {
-					log.Printf("Error stopping web server: %v\n", err)
+					appState.Logger.Error("Error stopping web server", "error", err)
 				}
 			}
 			myApp.Quit()
@@ -198,7 +199,9 @@ func initApp(appName string) (*state.AppState, error) {
 }
 
 func initLogger(appState *state.AppState) {
-	appState.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+	// Initialize logger with default configuration
+	config := logger.DefaultConfig(appState.LogsDir)
+	appState.Logger = logger.Initialize(config)
 }
 
 func initDataDirs(appName string, appState *state.AppState) error {

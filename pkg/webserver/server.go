@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,7 +46,7 @@ func NewServer(port int, app fyne.App) *Server {
 	// Load embedded Firebase configuration
 	embeddedConfig, err := LoadEmbeddedFirebaseConfig()
 	if err != nil {
-		log.Printf("Warning: Could not load embedded Firebase config: %v. Using environment variables instead.", err)
+		slog.Warn("Could not load embedded Firebase config, using environment variables instead", "error", err)
 	}
 
 	return &Server{
@@ -85,9 +85,9 @@ func (s *Server) Start() error {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Starting web server on port %d\n", s.port)
+		slog.Info("Starting web server", "port", s.port)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("Error starting server: %v\n", err)
+			slog.Error("Error starting server", "error", err)
 		}
 	}()
 
@@ -97,9 +97,9 @@ func (s *Server) Start() error {
 
 	// Set a 5-minute timeout for the server
 	s.timeoutTimer = time.AfterFunc(5*time.Minute, func() {
-		log.Println("Login server timeout reached (5 minutes), stopping server")
+		slog.Info("Login server timeout reached (5 minutes), stopping server")
 		if err := s.Stop(); err != nil {
-			log.Printf("Error stopping server on timeout: %v\n", err)
+			slog.Error("Error stopping server on timeout", "error", err)
 		}
 	})
 
@@ -142,7 +142,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	tmplContent, err := templateFS.ReadFile("templates/login.html")
 	if err != nil {
 		http.Error(w, "Failed to read template", http.StatusInternalServerError)
-		log.Printf("Error reading template: %v\n", err)
+		slog.Error("Error reading template", "error", err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := template.New("login").Parse(string(tmplContent))
 	if err != nil {
 		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-		log.Printf("Error parsing template: %v\n", err)
+		slog.Error("Error parsing template", "error", err)
 		return
 	}
 
@@ -169,18 +169,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			"FirebaseAppID":             s.embeddedConfig.AppID,
 			"FirebaseMeasurementID":     s.embeddedConfig.MeasurementID,
 		}
-		log.Printf("Rendering template with embedded Firebase config")
+		slog.Debug("Rendering template with embedded Firebase config")
 	} else {
 		// Fall back to environment variable config
 		templateData = s.firebaseConfig.TemplateData()
-		log.Printf("Rendering template with environment Firebase config")
+		slog.Debug("Rendering template with environment Firebase config")
 	}
 
 	// Pass Firebase configuration to the template
 	err = tmpl.Execute(w, templateData)
 	if err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-		log.Printf("Error rendering template: %v\n", err)
+		slog.Error("Error rendering template", "error", err)
 	}
 }
 
@@ -208,7 +208,7 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&userData); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
-		log.Printf("Error decoding request body: %v\n", err)
+		slog.Error("Error decoding request body", "error", err)
 		return
 	}
 
@@ -217,15 +217,17 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// For now, we'll just log the user information and create a session
 
 	// Log user information (safely handling sensitive data)
-	log.Printf("Login attempt for user: %s (UID: %s, Email: %s)\n",
-		userData.DisplayName, userData.UID, userData.Email)
+	slog.Info("Login attempt", 
+		"displayName", userData.DisplayName, 
+		"uid", userData.UID, 
+		"email", userData.Email)
 
 	// Log a portion of the token (safely handling short tokens)
 	tokenPreview := userData.IDToken
 	if len(tokenPreview) > 20 {
 		tokenPreview = tokenPreview[:20] + "..."
 	}
-	log.Printf("Firebase token: %s\n", tokenPreview)
+	slog.Debug("Firebase token received", "token", tokenPreview)
 
 	// Save user data if auth manager is available
 	if s.authManager != nil {
@@ -248,12 +250,12 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 		// Save to persistent storage
 		if err := s.authManager.SaveUserData(authData); err != nil {
-			log.Printf("Error saving user data: %v\n", err)
+			slog.Error("Error saving user data", "error", err)
 		} else {
-			log.Println("User data saved successfully")
+			slog.Info("User data saved successfully")
 		}
 	} else {
-		log.Println("Warning: Auth manager not set, user data not saved")
+		slog.Warn("Auth manager not set, user data not saved")
 	}
 
 	// Set a cookie or session to maintain login state
@@ -278,10 +280,10 @@ func (s *Server) handleLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		// Wait a moment to ensure the response is sent
 		time.Sleep(500 * time.Millisecond)
-		log.Println("Authentication successful, stopping login server")
+		slog.Info("Authentication successful, stopping login server")
 		// Stop the server
 		if err := s.Stop(); err != nil {
-			log.Printf("Error stopping server: %v\n", err)
+			slog.Error("Error stopping server", "error", err)
 		}
 	}()
 }
@@ -291,13 +293,13 @@ func (s *Server) openBrowser() {
 	urlStr := fmt.Sprintf("http://localhost:%d", s.port)
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
-		log.Printf("Error parsing URL: %v\n", err)
+		slog.Error("Error parsing URL", "error", err)
 		return
 	}
 
 	// Use Fyne's OpenURL function to open the browser
 	err = s.app.OpenURL(parsedURL)
 	if err != nil {
-		log.Printf("Error opening browser with Fyne: %v\n", err)
+		slog.Error("Error opening browser with Fyne", "error", err)
 	}
 }

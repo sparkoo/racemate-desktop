@@ -8,6 +8,7 @@ require (
 	github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/protobuf v1.36.6
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -40,14 +39,14 @@ func UploadJob(ctx context.Context) error {
 		if !authManager.IsLoggedIn() {
 			// Log this only occasionally to avoid spamming the log
 			if time.Now().Second()%30 == 0 {
-				fmt.Println("Skipping upload: user not logged in but has laps to upload")
+				appState.Logger.Info("Skipping upload: user not logged in but has laps to upload")
 			}
 			continue
 		}
 
 		// Proceed with upload since user is authenticated and has laps
 		if uploadErr := UploadSingleLap(appState); uploadErr != nil {
-			fmt.Printf("Failed to upload a single lap: %s\n", uploadErr)
+			appState.Logger.Error("Failed to upload a single lap", "error", uploadErr)
 		}
 	}
 
@@ -58,10 +57,10 @@ func UploadJob(ctx context.Context) error {
 func hasLapsToUpload(appState *state.AppState) bool {
 	entries, err := os.ReadDir(appState.UploadDir)
 	if err != nil {
-		fmt.Printf("Failed to read upload directory: %s\n", err)
+		appState.Logger.Error("Failed to read upload directory", "error", err)
 		return false
 	}
-	
+
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
 			return true
@@ -73,23 +72,24 @@ func hasLapsToUpload(appState *state.AppState) bool {
 func UploadSingleLap(appState *state.AppState) error {
 	entries, err := os.ReadDir(appState.UploadDir)
 	if err != nil {
-		log.Fatal(err)
+		appState.Logger.Error("Failed to read upload directory", "error", err)
+		return fmt.Errorf("failed to read upload directory: %w", err)
 	}
 
 	for _, entry := range entries {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".lap.gzip") {
-			fmt.Printf("Uploading '%s'\n", entry.Name())
+			appState.Logger.Info("Uploading lap file", "filename", entry.Name())
 			lapFile := fmt.Sprintf("%s/%s", appState.UploadDir, entry.Name())
 			uploadErr := UploadFile(lapFile, appState)
 			if uploadErr != nil {
 				return fmt.Errorf("Failed to upload the file: %w", uploadErr)
 			}
-			fmt.Println("File uploaded successfully")
+			appState.Logger.Info("File uploaded successfully")
 			err := os.Rename(lapFile, fmt.Sprintf("%s/%s", appState.UploadedDir, entry.Name()))
 			if err != nil {
 				return fmt.Errorf("failed to move the file '%s' to uploaded directory: %w", entry.Name(), err)
 			}
-			fmt.Println("File moved to uploaded directory")
+			appState.Logger.Info("File moved to uploaded directory")
 			break
 		}
 	}
@@ -119,12 +119,12 @@ func UploadFile(filename string, appState *state.AppState) error {
 		user, err := authManager.GetCurrentUser()
 		if err == nil && user != nil {
 			req.Header.Set("Authorization", "Bearer "+user.IDToken)
-			fmt.Println("Added auth token to upload request")
+			appState.Logger.Debug("Added auth token to upload request")
 		} else {
-			fmt.Println("Failed to get user for auth token:", err)
+			appState.Logger.Error("Failed to get user for auth token", "error", err)
 		}
 	} else {
-		fmt.Println("User not logged in, upload will be unauthorized")
+		appState.Logger.Info("User not logged in, upload will be unauthorized")
 	}
 
 	// Send request using http.Client
@@ -139,6 +139,6 @@ func UploadFile(filename string, appState *state.AppState) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Upload failed with status code: %d %s", resp.StatusCode, resp.Status)
 	}
-	fmt.Println("Upload Response Status:", resp.Status)
+	appState.Logger.Info("Upload completed", "status", resp.Status)
 	return nil
 }

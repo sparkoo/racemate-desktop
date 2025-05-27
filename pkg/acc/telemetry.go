@@ -2,7 +2,6 @@ package acc
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -20,7 +19,7 @@ func TelemetryLoop(ctx context.Context) {
 	scraper := &Scraper{}
 	appState, err := state.GetAppState(ctx)
 	if err != nil {
-		fmt.Printf("failed to get app state in TelemetryLoop: %s", err)
+		slog.Error("Failed to get app state in TelemetryLoop", "error", err)
 	}
 
 	// this loop is checking whether we have running ACC session

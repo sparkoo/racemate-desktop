@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -16,7 +17,8 @@ import (
 )
 
 func saveToFile(ctx context.Context, filename string, data *message.Lap) error {
-	fmt.Println("saving lap")
+	log := state.GetLogger(ctx)
+	log.Info("Saving lap to file")
 	protobufMessage, protoErr := proto.Marshal(data)
 	if protoErr != nil {
 		return fmt.Errorf("failed to marshal lap message with protobuf: %w", protoErr)
@@ -46,7 +48,7 @@ func loadFromFileCompressed(filename string) (*message.Lap, error) {
 	// 1. Open the compressed file
 	f, err := os.Open(filename) // Replace with your file name
 	if err != nil {
-		fmt.Println("Error opening file:", err)
+		slog.Error("Error opening file", "error", err)
 		return nil, fmt.Errorf("failed to open the file to read: %w", err)
 	}
 	defer f.Close() // Important: Close the file when done
@@ -102,7 +104,7 @@ func saveCompressed(filename string, data []byte) error {
 }
 
 func saveToJson(filename string, lap *message.Lap) error {
-	fmt.Printf("Save lap to '%s'\n", filename)
+	slog.Info("Saving lap to JSON", "filename", filename)
 	jsonData, err := json.MarshalIndent(lap, "", "  ") // Use MarshalIndent for pretty printing
 	if err != nil {
 		return fmt.Errorf("marshaling frames to JSON: %w", err)
