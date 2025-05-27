@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -20,6 +22,7 @@ import (
 	"github.com/sparkoo/racemate-desktop/pkg/state"
 	"github.com/sparkoo/racemate-desktop/pkg/upload"
 	"github.com/sparkoo/racemate-desktop/pkg/webserver"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const APP_NAME = "RaceMate"
@@ -30,7 +33,8 @@ const WEB_SERVER_PORT = 12123
 func main() {
 	appState, err := initApp(APP_NAME)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Fatal error during app initialization", "error", err)
+		os.Exit(1)
 	}
 
 	// Initialize auth manager
@@ -75,7 +79,7 @@ func main() {
 		err := webServer.Start()
 		if err != nil {
 			userLabel.SetText(fmt.Sprintf("Error starting login server: %v", err))
-			log.Printf("Error starting login server: %v\n", err)
+			appState.Logger.Error("Error starting login server", "error", err)
 			return
 		}
 
@@ -86,7 +90,7 @@ func main() {
 		err := authManager.Logout()
 		if err != nil {
 			userLabel.SetText(fmt.Sprintf("Error logging out: %v", err))
-			log.Printf("Error logging out: %v\n", err)
+			appState.Logger.Error("Error logging out", "error", err)
 			return
 		}
 		userLabel.SetText("Logged out successfully")
@@ -110,7 +114,7 @@ func main() {
 			// Stop web server if running
 			if webServer.IsActive() {
 				if err := webServer.Stop(); err != nil {
-					log.Printf("Error stopping web server: %v\n", err)
+					appState.Logger.Error("Error stopping web server", "error", err)
 				}
 			}
 			myApp.Quit()
@@ -198,7 +202,72 @@ func initApp(appName string) (*state.AppState, error) {
 }
 
 func initLogger(appState *state.AppState) {
-	appState.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+	// Configure log file with rotation
+	logFilePath := filepath.Join(appState.LogsDir, "racemate.log")
+	fileLogger := &lumberjack.Logger{
+		Filename:   logFilePath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 5,
+		MaxAge:     30, // days
+		Compress:   true,
+	}
+
+	// Create a multi-writer that writes to both stdout and the log file
+	multiWriter := io.MultiWriter(os.Stdout, fileLogger)
+
+	// Configure slog options
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+		AddSource: true,
+	}
+
+	// Use JSON format for structured logging
+	handler := slog.NewJSONHandler(multiWriter, opts)
+
+	// Create the logger
+	logger := slog.New(handler)
+
+	// Set the logger in the app state
+	appState.Logger = logger
+
+	// Log startup message
+	logger.Info("Logger initialized", 
+		"logFile", logFilePath,
+		"maxSize", "10MB",
+		"maxBackups", 5,
+		"maxAge", "30 days",
+		"compress", true)
+
+	// Create a custom logger adapter for the standard log package
+	// This ensures that log.Printf, log.Println, etc. will use our structured logger
+	log.SetFlags(0) // Remove default timestamps as slog will add them
+	log.SetOutput(&logAdapter{logger: logger})
+}
+
+
+
+// logAdapter is a custom io.Writer that forwards standard log package writes to slog
+type logAdapter struct {
+	logger *slog.Logger
+}
+
+// Write implements io.Writer for the logAdapter
+func (a *logAdapter) Write(p []byte) (n int, err error) {
+	// Remove trailing newlines for cleaner log output
+	msg := string(p)
+	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
+		msg = msg[:len(msg)-1]
+	}
+
+	// Check if this is a Fyne log message
+	if strings.Contains(msg, "Fyne") {
+		a.logger.Info("Fyne", "message", msg)
+	} else {
+		a.logger.Info(msg)
+	}
+
+	// Return the original length to satisfy io.Writer
+	return len(p), nil
 }
 
 func initDataDirs(appName string, appState *state.AppState) error {
