@@ -2,20 +2,6 @@
 
 A desktop client application that reads simracing telemetry data from Assetto Corsa Competizione (ACC) and provides user authentication via Firebase.
 
-## Features
-
-- ACC telemetry data collection
-- User authentication with Firebase
-- Persistent login sessions
-- System tray integration
-
-## Prerequisites
-
-- Go 1.16 or higher
-- Make
-- Windows operating system (currently only Windows is supported)
-- Firebase project (for authentication)
-
 ## Environment Setup
 
 The application requires Firebase configuration. Create a `.env` file in the root directory based on the provided `.env.example` file:
@@ -31,6 +17,8 @@ FIREBASE_MEASUREMENT_ID=your_measurement_id
 ```
 
 ## Building and Running
+
+Go version 1.24.3 or higher is required.
 
 The project includes a Makefile with several useful tasks:
 
