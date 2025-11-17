@@ -3,7 +3,7 @@ module github.com/sparkoo/racemate-desktop
 go 1.24.3
 
 require (
-	fyne.io/fyne/v2 v2.7.0
+	fyne.io/fyne/v2 v2.7.1
 	github.com/sparkoo/acctelemetry-go v0.0.0-20250223130948-b99bf47f9660
 	github.com/sparkoo/racemate-msg v0.0.0-20250222194303-4d0c9129cee9
 	github.com/stretchr/testify v1.11.1
