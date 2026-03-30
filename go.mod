@@ -1,6 +1,6 @@
 module github.com/sparkoo/racemate-desktop
 
-go 1.24.3
+go 1.25.0
 
 require (
 	fyne.io/fyne/v2 v2.7.2
@@ -39,9 +39,9 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/yuin/goldmark v1.7.11 // indirect
-	golang.org/x/image v0.27.0 // indirect
+	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
